@@ -214,3 +214,29 @@ body {
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
+
+/* ── buton limbă ── */
+#btn-limba {
+  margin-left: auto;
+  flex-shrink: 0;
+  padding: 6px 12px;
+  background: transparent;
+  border: 1px solid var(--border-hi);
+  border-radius: var(--radius-xs);
+  color: var(--text-dim);
+  font-family: 'Syne', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+  width: auto;
+  margin-top: 0;
+}
+
+#btn-limba:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  transform: none;
+  opacity: 1;
+}

@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="ro">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Calculator Combustibil</title>
+  <title>Fuel Calculator</title>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-nou-192.png">
   <meta name="theme-color" content="#09090f">
@@ -19,14 +19,15 @@
         </svg>
       </div>
       <div class="header-text">
-        <h1>Calculator Combustibil</h1>
-        <p>Estimează costul înainte sau după drum</p>
+        <h1 id="app-titlu">Fuel Calculator</h1>
+        <p id="app-subtitlu">Estimate the cost before or after your trip</p>
       </div>
+      <button id="btn-limba" onclick="schimbaLimba()" aria-label="Switch language">RO</button>
     </div>
 
     <div class="fields">
       <div class="field">
-        <label for="distanta">Distanță</label>
+        <label id="label-distanta" for="distanta">Distance</label>
         <div class="input-wrap">
           <input type="number" id="distanta" placeholder="150" step="any" min="0.1" max="50000">
           <span class="unit">km</span>
@@ -34,7 +35,7 @@
       </div>
 
       <div class="field">
-        <label for="consum">Consum mediu</label>
+        <label id="label-consum" for="consum">Avg. consumption</label>
         <div class="input-wrap">
           <input type="number" id="consum" placeholder="6.5" step="any" min="2" max="50">
           <span class="unit">L/100</span>
@@ -42,15 +43,15 @@
       </div>
 
       <div class="field">
-        <label for="pret">Preț combustibil</label>
+        <label id="label-pret" for="pret">Fuel price</label>
         <div class="input-wrap">
           <input type="number" id="pret" placeholder="7.20" step="any" min="0.1" max="100">
-          <span class="unit">lei/L</span>
+          <span class="unit">RON/L</span>
         </div>
       </div>
     </div>
 
-    <button id="btn-calculeaza" onclick="calculeaza()">Calculează</button>
+    <button id="btn-calculeaza" onclick="calculeaza()">Calculate</button>
 
     <div id="rezultat-wrap" style="display:none">
       <div class="divider"></div>
