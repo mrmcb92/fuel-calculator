@@ -57,7 +57,7 @@ or use the **Live Server** extension in VS Code.
 
 ## Live demo
 
-`https://mrmcb92.github.io/calculator-combustibil/`
+`https://mrmcb92.github.io/fuel-calculator/`
 
 ---
 
@@ -120,4 +120,4 @@ sau cu extensia **Live Server** din VS Code.
 
 ## Demo
 
-`https://mrmcb92.github.io/calculator-combustibil/`
+`https://mrmcb92.github.io/fuel-calculator/`

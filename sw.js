@@ -1,12 +1,12 @@
 const CACHE_NAME = 'combustibil-v5';
 const resurse = [
-  '/calculator-combustibil/',
-  '/calculator-combustibil/index.html',
-  '/calculator-combustibil/app.js',
-  '/calculator-combustibil/style.css',
-  '/calculator-combustibil/manifest.json',
-  '/calculator-combustibil/icon-nou-192.png',
-  '/calculator-combustibil/icon-nou-512.png'
+  '/fuel-calculator/',
+  '/fuel-calculator/index.html',
+  '/fuel-calculator/app.js',
+  '/fuel-calculator/style.css',
+  '/fuel-calculator/manifest.json',
+  '/fuel-calculator/icon-nou-192.png',
+  '/fuel-calculator/icon-nou-512.png'
 ];
 
 self.addEventListener('install', (eveniment) => {
