@@ -25,40 +25,147 @@
       <button id="btn-limba" onclick="schimbaLimba()" aria-label="Switch language">RO</button>
     </div>
 
-    <div class="fields">
-      <div class="field">
-        <label id="label-distanta" for="distanta">Distance</label>
-        <div class="input-wrap">
-          <input type="number" id="distanta" placeholder="150" step="any" min="0.1" max="50000">
-          <span class="unit">km</span>
+    <div class="tabs">
+      <button class="tab active" id="tab-cost" onclick="setTab('cost')"><span id="tab-cost-label">Cost</span></button>
+      <button class="tab" id="tab-range" onclick="setTab('range')"><span id="tab-range-label">Range</span></button>
+      <button class="tab" id="tab-history" onclick="setTab('history')"><span id="tab-history-label">History</span></button>
+    </div>
+
+    <!-- ── TAB: COST ── -->
+    <div id="panel-cost" class="panel">
+
+      <div class="profile-row">
+        <select id="profile-select" onchange="loadProfile()">
+          <option value="" id="profile-default-opt">— Vehicle —</option>
+        </select>
+        <button class="icon-btn" id="btn-save-profile" onclick="saveProfile()" aria-label="Save profile">+</button>
+        <button class="icon-btn" id="btn-del-profile" onclick="deleteProfile()" aria-label="Delete profile">&times;</button>
+      </div>
+
+      <div class="fields">
+
+        <div class="field">
+          <div class="field-header">
+            <label id="label-distanta" for="distanta">Distance</label>
+            <label class="inline-check">
+              <input type="checkbox" id="tur-retur" onchange="recalculeaza()">
+              <span id="label-tur-retur">Round trip</span>
+            </label>
+          </div>
+          <div class="input-wrap">
+            <input type="number" id="distanta" inputmode="decimal" placeholder="150" step="any" min="0.1" max="50000" oninput="recalculeaza()">
+            <span class="unit">km</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <div class="field-header">
+            <label id="label-consum" for="consum">Avg. consumption</label>
+            <div class="seg-ctrl" id="consum-unit-toggle">
+              <button class="seg active" data-unit="L100" onclick="setConsumUnit('L100')">L/100</button>
+              <button class="seg" data-unit="kmL" onclick="setConsumUnit('kmL')">km/L</button>
+              <button class="seg" data-unit="mpg" onclick="setConsumUnit('mpg')">mpg</button>
+            </div>
+          </div>
+          <div class="input-wrap">
+            <input type="number" id="consum" inputmode="decimal" placeholder="6.5" step="any" min="0.1" max="999" oninput="recalculeaza()">
+            <span class="unit" id="unit-consum">L/100</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <div class="field-header">
+            <label id="label-pret" for="pret">Fuel price</label>
+            <div class="seg-ctrl" id="currency-toggle">
+              <button class="seg active" data-cur="RON" onclick="setCurrency('RON')">RON</button>
+              <button class="seg" data-cur="EUR" onclick="setCurrency('EUR')">EUR</button>
+              <button class="seg" data-cur="USD" onclick="setCurrency('USD')">USD</button>
+            </div>
+          </div>
+          <div class="input-wrap">
+            <input type="number" id="pret" inputmode="decimal" placeholder="7.20" step="any" min="0.1" max="1000" oninput="recalculeaza()">
+            <span class="unit" id="unit-pret">RON/L</span>
+          </div>
+        </div>
+
+        <div class="field" id="field-pasageri">
+          <div class="field-header">
+            <label id="label-pasageri" for="pasageri">Passengers</label>
+            <label class="inline-check">
+              <input type="checkbox" id="split-toggle" onchange="toggleSplit()">
+              <span id="label-split">Split cost</span>
+            </label>
+          </div>
+          <div class="input-wrap" id="pasageri-wrap" style="display:none">
+            <input type="number" id="pasageri" inputmode="numeric" placeholder="2" step="1" min="1" max="20" value="2" oninput="recalculeaza()">
+            <span class="unit" id="unit-pasageri">pax</span>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="btn-row">
+        <button id="btn-reset" onclick="resetForm()"><span id="label-btn-reset">Reset</span></button>
+        <button id="btn-calculeaza" onclick="calculeaza()"><span id="label-btn-calc">Calculate</span></button>
+      </div>
+
+      <div id="rezultat-wrap" style="display:none">
+        <div class="divider"></div>
+        <div id="rezultat"></div>
+        <div class="share-row" id="share-row" style="display:none">
+          <button id="btn-share" onclick="shareResult()"><span id="label-share">Share</span></button>
         </div>
       </div>
 
-      <div class="field">
-        <label id="label-consum" for="consum">Avg. consumption</label>
-        <div class="input-wrap">
-          <input type="number" id="consum" placeholder="6.5" step="any" min="2" max="50">
-          <span class="unit">L/100</span>
+    </div>
+
+    <!-- ── TAB: RANGE ── -->
+    <div id="panel-range" class="panel" style="display:none">
+      <div class="fields">
+
+        <div class="field">
+          <label id="label-buget" for="buget">Budget</label>
+          <div class="input-wrap">
+            <input type="number" id="buget" inputmode="decimal" placeholder="200" step="any" min="0.1" oninput="calcRange()">
+            <span class="unit" id="unit-buget">RON</span>
+          </div>
         </div>
+
+        <div class="field">
+          <label id="label-consum-r" for="consum-r">Avg. consumption</label>
+          <div class="input-wrap">
+            <input type="number" id="consum-r" inputmode="decimal" placeholder="6.5" step="any" min="0.1" max="999" oninput="calcRange()">
+            <span class="unit">L/100</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label id="label-pret-r" for="pret-r">Fuel price</label>
+          <div class="input-wrap">
+            <input type="number" id="pret-r" inputmode="decimal" placeholder="7.20" step="any" min="0.1" oninput="calcRange()">
+            <span class="unit" id="unit-pret-r">RON/L</span>
+          </div>
+        </div>
+
       </div>
 
-      <div class="field">
-        <label id="label-pret" for="pret">Fuel price</label>
-        <div class="input-wrap">
-          <input type="number" id="pret" placeholder="7.20" step="any" min="0.1" max="100">
-          <span class="unit">RON/L</span>
-        </div>
+      <div id="range-result-wrap" style="display:none">
+        <div class="divider"></div>
+        <div id="range-rezultat"></div>
       </div>
     </div>
 
-    <button id="btn-calculeaza" onclick="calculeaza()">Calculate</button>
-
-    <div id="rezultat-wrap" style="display:none">
-      <div class="divider"></div>
-      <div id="rezultat"></div>
+    <!-- ── TAB: HISTORY ── -->
+    <div id="panel-history" class="panel" style="display:none">
+      <div id="history-list"></div>
+      <button id="btn-clear-history" onclick="clearHistory()" style="display:none">
+        <span id="label-clear-history">Clear history</span>
+      </button>
     </div>
 
   </div>
+
+  <div id="toast"></div>
 
   <script src="app.js"></script>
   <script>
