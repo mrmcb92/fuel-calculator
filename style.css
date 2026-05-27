@@ -398,3 +398,116 @@ body {
 
 /* ── Range panel ── */
 #panel-range .fields { margin-bottom: 0; }
+
+/* ── Sync button ── */
+.sync-btn svg { width: 15px; height: 15px; display: block; }
+
+/* ── Sync status bar ── */
+.sync-status-bar {
+  font-size: .62rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
+  padding: 5px 10px; border-radius: var(--radius-xs);
+  margin-bottom: 10px; text-align: center;
+}
+.sync-status-bar.connecting { background: rgba(200,200,87,.08); color: #c8c857; }
+.sync-status-bar.connected  { background: var(--accent-dim); color: var(--accent); }
+.sync-status-bar.offline    { background: var(--error-dim); color: var(--error); }
+
+/* ── Modal overlay ── */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(0,0,0,.7);
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+  backdrop-filter: blur(4px);
+}
+
+.modal-box {
+  background: var(--surface);
+  border: 1px solid var(--border-hi);
+  border-radius: var(--radius);
+  padding: 22px 20px;
+  width: 100%; max-width: 360px;
+  animation: fadeUp .22s ease forwards;
+}
+
+.modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 18px;
+}
+.modal-header span {
+  font-size: .95rem; font-weight: 800; letter-spacing: -.02em; color: var(--text);
+}
+.modal-close {
+  width: 28px; height: 28px;
+  background: transparent; border: 1px solid var(--border-hi);
+  border-radius: var(--radius-xs);
+  color: var(--text-dim); font-size: 1rem; line-height: 1;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: border-color .15s, color .15s;
+}
+.modal-close:hover { border-color: var(--error); color: var(--error); }
+
+.modal-desc {
+  font-size: .72rem; color: var(--text-dim); font-weight: 600;
+  letter-spacing: .01em; margin-bottom: 10px;
+}
+
+.modal-divider { height: 1px; background: var(--border); margin: 18px 0; }
+
+/* ── Sync code display ── */
+.sync-code-row {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: var(--radius-xs); padding: 10px 14px;
+}
+.sync-code {
+  flex: 1;
+  font-family: 'DM Mono', monospace;
+  font-size: 1.6rem; font-weight: 500; letter-spacing: .15em;
+  color: var(--accent);
+}
+.sync-code-row button {
+  padding: 6px 12px;
+  background: transparent; border: 1px solid var(--border-hi);
+  border-radius: var(--radius-xs);
+  color: var(--text-dim);
+  font-family: 'Syne', sans-serif;
+  font-size: .68rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+  cursor: pointer; transition: border-color .15s, color .15s; flex-shrink: 0;
+}
+.sync-code-row button:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ── Sync input row ── */
+.sync-input-row {
+  display: flex; gap: 8px;
+}
+.sync-input-row input {
+  flex: 1;
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  padding: 11px 13px;
+  font-family: 'DM Mono', monospace;
+  font-size: 1.1rem; font-weight: 500; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--text); outline: none;
+  transition: border-color .18s, box-shadow .18s;
+}
+.sync-input-row input:focus {
+  border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim);
+}
+.sync-input-row input::placeholder { color: var(--text-muted); letter-spacing: .08em; text-transform: uppercase; }
+.sync-input-row button {
+  padding: 11px 16px;
+  background: var(--accent); color: #09090f;
+  border: none; border-radius: var(--radius-xs);
+  font-family: 'Syne', sans-serif;
+  font-size: .8rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase;
+  cursor: pointer; transition: opacity .15s; flex-shrink: 0;
+}
+.sync-input-row button:hover { opacity: .88; }
+
+/* ── Sync feedback ── */
+.sync-feedback {
+  font-size: .72rem; font-weight: 600; margin-top: 10px; min-height: 18px;
+}
+.sync-feedback.ok    { color: var(--accent); }
+.sync-feedback.error { color: var(--error); }

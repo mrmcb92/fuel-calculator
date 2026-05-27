@@ -36,6 +36,16 @@ const TRADUCERI = {
     profileDeleted: 'Profile deleted.',
     profileNone:    'Select a profile first.',
     copiedMsg:      'Copied!',
+    syncTitle:      'Sync Profiles',
+    syncDesc1:      'Your device code — share it with another device:',
+    syncDesc2:      'Enter another device\'s code to use the same profiles:',
+    syncCopy:       'Copy',
+    syncApply:      'Sync',
+    syncOk:         'Synced! Profiles will appear shortly.',
+    syncInvalid:    'Invalid code — must be 6 characters.',
+    syncConnecting: 'Connecting...',
+    syncConnected:  'Synced',
+    syncOffline:    'Offline — using local profiles',
     eroareNaN:      (f) => `"${f}" is not a valid number.`,
     eroareInterval: (f, a, b) => `"${f}" must be between ${a} and ${b}.`,
   },
@@ -74,6 +84,16 @@ const TRADUCERI = {
     profileDeleted: 'Profil șters.',
     profileNone:    'Selectează un profil mai întâi.',
     copiedMsg:      'Copiat!',
+    syncTitle:      'Sincronizare Profiluri',
+    syncDesc1:      'Codul tău — trimite-l pe alt dispozitiv:',
+    syncDesc2:      'Introdu codul altui dispozitiv pentru aceleași profiluri:',
+    syncCopy:       'Copiază',
+    syncApply:      'Sincronizează',
+    syncOk:         'Sincronizat! Profilurile apar în câteva secunde.',
+    syncInvalid:    'Cod invalid — trebuie să aibă 6 caractere.',
+    syncConnecting: 'Se conectează...',
+    syncConnected:  'Sincronizat',
+    syncOffline:    'Offline — profiluri locale',
     eroareNaN:      (f) => `Câmpul „${f}" nu este valid.`,
     eroareInterval: (f, a, b) => `„${f}" trebuie să fie între ${a} și ${b}.`,
   }
@@ -81,10 +101,177 @@ const TRADUCERI = {
 
 // ── State ───────────────────────────────────────────────────────────────────
 
-let limbaActiva = localStorage.getItem('comb_limba')      || 'en';
-let consumUnit  = localStorage.getItem('comb_consumUnit') || 'L100';
-let currency    = localStorage.getItem('comb_currency')   || 'RON';
-let lastResult  = null;
+let limbaActiva  = localStorage.getItem('comb_limba')      || 'en';
+let consumUnit   = localStorage.getItem('comb_consumUnit') || 'L100';
+let currency     = localStorage.getItem('comb_currency')   || 'RON';
+let lastResult   = null;
+let profilesCache = [];
+
+// ── Firebase ─────────────────────────────────────────────────────────────────
+
+let db = null;
+let syncId = null;
+let unsubscribeProfiles = null;
+
+const SYNC_ID_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+function generateSyncId() {
+  return Array.from({ length: 6 }, () =>
+    SYNC_ID_CHARS[Math.floor(Math.random() * SYNC_ID_CHARS.length)]
+  ).join('');
+}
+
+function getSyncId() {
+  let id = localStorage.getItem('comb_syncId');
+  if (!id || id.length !== 6) {
+    id = generateSyncId();
+    localStorage.setItem('comb_syncId', id);
+  }
+  return id;
+}
+
+function isFirebaseConfigured() {
+  return (
+    typeof FIREBASE_CONFIG !== 'undefined' &&
+    FIREBASE_CONFIG.apiKey &&
+    FIREBASE_CONFIG.projectId
+  );
+}
+
+function initFirebase() {
+  // Always generate syncId so the modal shows a code even without Firebase
+  syncId = getSyncId();
+
+  if (!isFirebaseConfigured()) {
+    profilesCache = localGetProfiles();
+    renderProfiles();
+    return;
+  }
+
+  try {
+    if (!firebase.apps.length) {
+      firebase.initializeApp(FIREBASE_CONFIG);
+    }
+    db = firebase.firestore();
+    subscribeToProfiles(syncId);
+    setSyncStatusBar('connecting');
+  } catch (e) {
+    console.warn('Firebase init failed:', e);
+    profilesCache = localGetProfiles();
+    renderProfiles();
+  }
+}
+
+function subscribeToProfiles(id) {
+  if (unsubscribeProfiles) {
+    unsubscribeProfiles();
+    unsubscribeProfiles = null;
+  }
+  if (!db) return;
+
+  setSyncStatusBar('connecting');
+
+  unsubscribeProfiles = db.collection('users').doc(id)
+    .onSnapshot(
+      snap => {
+        const data = snap.data();
+        profilesCache = Array.isArray(data?.profiles) ? data.profiles : [];
+        // also keep localStorage in sync as offline fallback
+        localStorage.setItem('comb_profiles', JSON.stringify(profilesCache));
+        renderProfiles();
+        setSyncStatusBar('connected');
+      },
+      err => {
+        console.warn('Firestore error:', err);
+        profilesCache = localGetProfiles();
+        renderProfiles();
+        setSyncStatusBar('offline');
+      }
+    );
+}
+
+function setSyncStatusBar(state) {
+  const bar  = document.getElementById('sync-status-bar');
+  const text = document.getElementById('sync-status-text');
+  if (!bar || !text) return;
+  const tr = t();
+  if (state === 'connecting') {
+    bar.style.display = '';
+    bar.className = 'sync-status-bar connecting';
+    text.textContent = tr.syncConnecting;
+  } else if (state === 'connected') {
+    bar.style.display = '';
+    bar.className = 'sync-status-bar connected';
+    text.textContent = tr.syncConnected + (syncId ? ' · ' + syncId : '');
+    setTimeout(() => { if (bar.className.includes('connected')) bar.style.display = 'none'; }, 3000);
+  } else if (state === 'offline') {
+    bar.style.display = '';
+    bar.className = 'sync-status-bar offline';
+    text.textContent = tr.syncOffline;
+  }
+}
+
+// ── Profile storage helpers ──────────────────────────────────────────────────
+
+function localGetProfiles() {
+  try { return JSON.parse(localStorage.getItem('comb_profiles') || '[]'); } catch { return []; }
+}
+
+function getProfiles() {
+  return profilesCache;
+}
+
+function saveProfiles(profiles) {
+  profilesCache = profiles;
+  localStorage.setItem('comb_profiles', JSON.stringify(profiles));
+  if (db && syncId) {
+    db.collection('users').doc(syncId)
+      .set({ profiles }, { merge: true })
+      .catch(err => console.warn('Firestore write error:', err));
+  }
+}
+
+// ── Sync modal ───────────────────────────────────────────────────────────────
+
+function openSyncModal() {
+  document.getElementById('sync-code-display').textContent = syncId || '------';
+  document.getElementById('sync-code-input').value = '';
+  document.getElementById('sync-feedback').textContent = '';
+  document.getElementById('sync-modal').style.display = '';
+}
+
+function closeSyncModal() {
+  document.getElementById('sync-modal').style.display = 'none';
+}
+
+function onOverlayClick(e) {
+  if (e.target === document.getElementById('sync-modal')) closeSyncModal();
+}
+
+function copySyncCode() {
+  if (!syncId) return;
+  navigator.clipboard?.writeText(syncId).then(() => showToast(t().copiedMsg));
+}
+
+function applySyncCode() {
+  const raw   = document.getElementById('sync-code-input').value.trim().toUpperCase();
+  const fb    = document.getElementById('sync-feedback');
+  const tr    = t();
+  if (raw.length !== 6) {
+    fb.textContent = tr.syncInvalid;
+    fb.className   = 'sync-feedback error';
+    return;
+  }
+  syncId = raw;
+  localStorage.setItem('comb_syncId', syncId);
+  document.getElementById('sync-code-display').textContent = syncId;
+  document.getElementById('sync-code-input').value = '';
+  fb.textContent = tr.syncOk;
+  fb.className   = 'sync-feedback ok';
+  if (db) {
+    subscribeToProfiles(syncId);
+  }
+}
 
 // ── Formatters ──────────────────────────────────────────────────────────────
 
@@ -99,18 +286,18 @@ function esc(s) {
     .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-// ── Unit conversion ─────────────────────────────────────────────────────────
+// ── Unit conversion ──────────────────────────────────────────────────────────
 
 function toL100(val, unit) {
   if (unit === 'kmL') return 100 / val;
-  if (unit === 'mpg') return 235.214 / val; // US mpg
+  if (unit === 'mpg') return 235.214 / val;
   return val;
 }
 
 const CONSUM_PLACEHOLDER = { L100: '6.5', kmL: '15.4', mpg: '36' };
 const CONSUM_LABEL       = { L100: 'L/100', kmL: 'km/L', mpg: 'mpg' };
 
-// ── Language ────────────────────────────────────────────────────────────────
+// ── Language ─────────────────────────────────────────────────────────────────
 
 function aplicaLimba() {
   const tr = t();
@@ -134,6 +321,11 @@ function aplicaLimba() {
     'label-btn-reset':    tr.butonReset,
     'label-share':        tr.share,
     'label-clear-history':tr.clearHistory,
+    'modal-sync-title':   tr.syncTitle,
+    'modal-sync-desc1':   tr.syncDesc1,
+    'modal-sync-desc2':   tr.syncDesc2,
+    'label-copy-sync':    tr.syncCopy,
+    'label-apply-sync':   tr.syncApply,
   };
   for (const [id, text] of Object.entries(ids)) {
     const el = document.getElementById(id);
@@ -152,7 +344,7 @@ function schimbaLimba() {
   aplicaLimba();
 }
 
-// ── Currency ────────────────────────────────────────────────────────────────
+// ── Currency ─────────────────────────────────────────────────────────────────
 
 function setCurrency(cur) {
   currency = cur;
@@ -170,7 +362,7 @@ function updateCurrencyLabels() {
   document.getElementById('unit-buget').textContent  = currency;
 }
 
-// ── Consumption unit ────────────────────────────────────────────────────────
+// ── Consumption unit ──────────────────────────────────────────────────────────
 
 function setConsumUnit(unit) {
   consumUnit = unit;
@@ -183,7 +375,7 @@ function setConsumUnit(unit) {
   recalculeaza();
 }
 
-// ── Tabs ────────────────────────────────────────────────────────────────────
+// ── Tabs ──────────────────────────────────────────────────────────────────────
 
 function setTab(tab) {
   ['cost', 'range', 'history'].forEach(id => {
@@ -191,11 +383,11 @@ function setTab(tab) {
     document.getElementById('panel-' + id).style.display = id === tab ? '' : 'none';
   });
   if (tab === 'range') {
-    const c = document.getElementById('consum').value;
-    const p = document.getElementById('pret').value;
+    const c  = document.getElementById('consum').value;
+    const p  = document.getElementById('pret').value;
     const cu = parseFloat(c);
     if (!isNaN(cu) && cu > 0) {
-      document.getElementById('consum-r').value = fmt1.format(toL100(cu, consumUnit)).replace(',', '.');
+      document.getElementById('consum-r').value = String(toL100(cu, consumUnit)).replace(',', '.');
     }
     if (p) document.getElementById('pret-r').value = p;
     calcRange();
@@ -203,7 +395,7 @@ function setTab(tab) {
   if (tab === 'history') renderHistory();
 }
 
-// ── Split passengers ────────────────────────────────────────────────────────
+// ── Split passengers ──────────────────────────────────────────────────────────
 
 function toggleSplit() {
   const on = document.getElementById('split-toggle').checked;
@@ -211,7 +403,7 @@ function toggleSplit() {
   recalculeaza();
 }
 
-// ── Validation ──────────────────────────────────────────────────────────────
+// ── Validation ────────────────────────────────────────────────────────────────
 
 function valideaza(distanta, consumL100, pret) {
   const tr = t();
@@ -224,7 +416,7 @@ function valideaza(distanta, consumL100, pret) {
   return null;
 }
 
-// ── Cost calculation ────────────────────────────────────────────────────────
+// ── Cost calculation ──────────────────────────────────────────────────────────
 
 function getDistantaEffectiva() {
   const d = parseFloat(document.getElementById('distanta').value);
@@ -259,7 +451,7 @@ function calculeaza() {
   const lbl        = document.getElementById('label-btn-calc');
   const tr         = t();
 
-  btn.disabled  = true;
+  btn.disabled    = true;
   lbl.textContent = tr.butonLoading;
 
   const eroare = valideaza(distanta, consumL100, pret);
@@ -292,7 +484,7 @@ function afiseazaEroare(msg) {
   const rez  = document.getElementById('rezultat');
   document.getElementById('share-row').style.display = 'none';
   wrap.style.display = 'block';
-  rez.className  = 'eroare';
+  rez.className   = 'eroare';
   rez.textContent = msg;
 }
 
@@ -305,7 +497,6 @@ function afiseazaRezultat(res) {
   rez.className = '';
 
   const cols = res.pasageri > 1 ? 4 : 3;
-
   const perPaxHTML = res.pasageri > 1 ? `
     <div class="result-card" data-copy="${fmt.format(res.cost / res.pasageri)}">
       <div class="r-label">${tr.labelPerPax}</div>
@@ -335,7 +526,7 @@ function afiseazaRezultat(res) {
   `;
 }
 
-// ── Range calculation ───────────────────────────────────────────────────────
+// ── Range calculation ─────────────────────────────────────────────────────────
 
 function calcRange() {
   const buget     = parseFloat(document.getElementById('buget').value);
@@ -367,29 +558,19 @@ function calcRange() {
   `;
 }
 
-// ── Copy to clipboard ───────────────────────────────────────────────────────
+// ── Copy to clipboard ─────────────────────────────────────────────────────────
 
 function copyValue(val) {
   if (!navigator.clipboard) return;
   navigator.clipboard.writeText(val).then(() => showToast(t().copiedMsg));
 }
 
-let toastTimer;
-function showToast(msg) {
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove('show'), 1800);
-}
-
-// Click-to-copy via event delegation
 document.addEventListener('click', e => {
   const card = e.target.closest('.result-card[data-copy]');
   if (card) copyValue(card.dataset.copy);
 });
 
-// ── Share ───────────────────────────────────────────────────────────────────
+// ── Share ─────────────────────────────────────────────────────────────────────
 
 function shareResult() {
   if (!lastResult) return;
@@ -409,7 +590,18 @@ function shareResult() {
   }
 }
 
-// ── History ─────────────────────────────────────────────────────────────────
+// ── Toast ─────────────────────────────────────────────────────────────────────
+
+let toastTimer;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 1800);
+}
+
+// ── History ───────────────────────────────────────────────────────────────────
 
 function getHistory() {
   try { return JSON.parse(localStorage.getItem('comb_history') || '[]'); } catch { return []; }
@@ -418,12 +610,12 @@ function getHistory() {
 function addToHistory(res) {
   const hist = getHistory();
   hist.unshift({
-    date:       new Date().toISOString(),
-    distanta:   res.distanta,
-    litri:      res.litri,
-    cost:       res.cost,
-    costPerKm:  res.costPerKm,
-    pasageri:   res.pasageri,
+    date:      new Date().toISOString(),
+    distanta:  res.distanta,
+    litri:     res.litri,
+    cost:      res.cost,
+    costPerKm: res.costPerKm,
+    pasageri:  res.pasageri,
     currency,
   });
   if (hist.length > 10) hist.pop();
@@ -450,7 +642,7 @@ function renderHistory() {
   btn.style.display = '';
   const locale = limbaActiva === 'ro' ? 'ro-RO' : 'en-GB';
   list.innerHTML = hist.map(h => {
-    const ds = new Date(h.date).toLocaleString(locale, {
+    const ds  = new Date(h.date).toLocaleString(locale, {
       day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
     });
     const cur = h.currency || 'RON';
@@ -470,11 +662,7 @@ function renderHistory() {
   }).join('');
 }
 
-// ── Vehicle profiles ─────────────────────────────────────────────────────────
-
-function getProfiles() {
-  try { return JSON.parse(localStorage.getItem('comb_profiles') || '[]'); } catch { return []; }
-}
+// ── Vehicle profiles ──────────────────────────────────────────────────────────
 
 function renderProfiles() {
   const sel      = document.getElementById('profile-select');
@@ -494,7 +682,7 @@ function saveProfile() {
   if (!name || !name.trim()) return;
   const profiles = getProfiles();
   profiles.push({ id: Date.now().toString(), name: name.trim(), consum: parseFloat(consumVal), unit: consumUnit });
-  localStorage.setItem('comb_profiles', JSON.stringify(profiles));
+  saveProfiles(profiles);
   renderProfiles();
   showToast(tr.profileSaved);
 }
@@ -513,13 +701,12 @@ function deleteProfile() {
   const id = document.getElementById('profile-select').value;
   const tr = t();
   if (!id) { showToast(tr.profileNone); return; }
-  const profiles = getProfiles().filter(p => p.id !== id);
-  localStorage.setItem('comb_profiles', JSON.stringify(profiles));
+  saveProfiles(getProfiles().filter(p => p.id !== id));
   renderProfiles();
   showToast(tr.profileDeleted);
 }
 
-// ── Reset ────────────────────────────────────────────────────────────────────
+// ── Reset ─────────────────────────────────────────────────────────────────────
 
 function resetForm() {
   ['distanta', 'consum', 'pret'].forEach(id => document.getElementById(id).value = '');
@@ -532,7 +719,7 @@ function resetForm() {
   lastResult = null;
 }
 
-// ── Init ─────────────────────────────────────────────────────────────────────
+// ── Init ──────────────────────────────────────────────────────────────────────
 
 function incarca() {
   const d = localStorage.getItem('comb_distanta');
@@ -542,7 +729,6 @@ function incarca() {
   if (c) document.getElementById('consum').value   = c;
   if (p) document.getElementById('pret').value     = p;
 
-  // restore toggles
   document.querySelectorAll('#currency-toggle .seg').forEach(b => {
     b.classList.toggle('active', b.dataset.cur === currency);
   });
@@ -554,10 +740,9 @@ function incarca() {
 
   updateCurrencyLabels();
   aplicaLimba();
-  renderProfiles();
+  initFirebase();
   recalculeaza();
 
-  // Enter key support on all inputs
   document.querySelectorAll('input[type=number]').forEach(inp => {
     inp.addEventListener('keydown', e => { if (e.key === 'Enter') calculeaza(); });
   });
@@ -565,7 +750,7 @@ function incarca() {
 
 document.addEventListener('DOMContentLoaded', incarca);
 
-// expose globals (called via inline onclick)
+// globals
 window.calculeaza    = calculeaza;
 window.recalculeaza  = recalculeaza;
 window.schimbaLimba  = schimbaLimba;
@@ -580,3 +765,8 @@ window.saveProfile   = saveProfile;
 window.loadProfile   = loadProfile;
 window.deleteProfile = deleteProfile;
 window.resetForm     = resetForm;
+window.openSyncModal  = openSyncModal;
+window.closeSyncModal = closeSyncModal;
+window.onOverlayClick = onOverlayClick;
+window.copySyncCode   = copySyncCode;
+window.applySyncCode  = applySyncCode;

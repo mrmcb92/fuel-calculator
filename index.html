@@ -40,6 +40,18 @@
         </select>
         <button class="icon-btn" id="btn-save-profile" onclick="saveProfile()" aria-label="Save profile">+</button>
         <button class="icon-btn" id="btn-del-profile" onclick="deleteProfile()" aria-label="Delete profile">&times;</button>
+        <button class="icon-btn sync-btn" id="btn-open-sync" onclick="openSyncModal()" aria-label="Sync profiles">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 1l4 4-4 4"/>
+            <path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+            <path d="M7 23l-4-4 4-4"/>
+            <path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+          </svg>
+        </button>
+      </div>
+
+      <div id="sync-status-bar" class="sync-status-bar" style="display:none">
+        <span id="sync-status-text"></span>
       </div>
 
       <div class="fields">
@@ -165,8 +177,34 @@
 
   </div>
 
+  <!-- ── SYNC MODAL ── -->
+  <div id="sync-modal" class="modal-overlay" style="display:none" onclick="onOverlayClick(event)">
+    <div class="modal-box">
+      <div class="modal-header">
+        <span id="modal-sync-title">Sync Profiles</span>
+        <button class="modal-close" onclick="closeSyncModal()">&times;</button>
+      </div>
+      <p id="modal-sync-desc1" class="modal-desc">Your device code — share it with another device:</p>
+      <div class="sync-code-row">
+        <span id="sync-code-display" class="sync-code">------</span>
+        <button id="btn-copy-sync" onclick="copySyncCode()"><span id="label-copy-sync">Copy</span></button>
+      </div>
+      <div class="modal-divider"></div>
+      <p id="modal-sync-desc2" class="modal-desc">Enter another device's code to use the same profiles:</p>
+      <div class="sync-input-row">
+        <input type="text" id="sync-code-input" maxlength="6" placeholder="ABC123" autocomplete="off" autocapitalize="characters" spellcheck="false">
+        <button id="btn-apply-sync" onclick="applySyncCode()"><span id="label-apply-sync">Sync</span></button>
+      </div>
+      <p id="sync-feedback" class="sync-feedback"></p>
+    </div>
+  </div>
+
   <div id="toast"></div>
 
+  <!-- Firebase SDK (compat) -->
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+  <script src="firebase-config.js?v=2"></script>
   <script src="app.js"></script>
   <script>
     if ('serviceWorker' in navigator) {
