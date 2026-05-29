@@ -399,6 +399,89 @@ body {
 /* ── Range panel ── */
 #panel-range .fields { margin-bottom: 0; }
 
+/* ── Fuel type selector ── */
+.fuel-type-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.fuel-btn {
+  padding: 11px 4px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  color: var(--text-dim);
+  font-family: 'Syne', sans-serif;
+  font-size: .78rem; font-weight: 700; letter-spacing: .04em;
+  cursor: pointer;
+  transition: border-color .15s, color .15s, background .15s;
+  text-align: center;
+}
+.fuel-btn:not(.active):hover {
+  border-color: var(--border-hi);
+  color: var(--text);
+}
+.fuel-btn.active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-dim);
+}
+
+/* ── Price freshness badge ── */
+.price-freshness {
+  font-size: .6rem; font-weight: 700;
+  letter-spacing: .05em; text-transform: uppercase;
+  color: var(--text-muted);
+  font-family: 'DM Mono', monospace;
+  transition: color .2s;
+}
+.price-freshness.live    { color: var(--accent); }
+.price-freshness.loading { color: var(--text-muted); animation: blink 1.2s step-start infinite; }
+
+@keyframes blink { 50% { opacity: .3; } }
+
+/* ── Modal API key section ── */
+.modal-section-label {
+  font-size: .62rem; font-weight: 800;
+  text-transform: uppercase; letter-spacing: .1em;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+}
+
+.modal-link {
+  color: var(--accent);
+  text-decoration: none;
+}
+.modal-link:hover { text-decoration: underline; }
+
+.api-key-row {
+  display: flex; gap: 8px;
+}
+.api-key-row input {
+  flex: 1;
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  padding: 10px 12px;
+  font-family: 'DM Mono', monospace;
+  font-size: .82rem; font-weight: 400; letter-spacing: .02em;
+  color: var(--text); outline: none;
+  transition: border-color .18s, box-shadow .18s;
+}
+.api-key-row input::placeholder { color: var(--text-muted); }
+.api-key-row input:focus {
+  border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim);
+}
+.api-key-row button {
+  padding: 10px 14px;
+  background: var(--accent); color: #09090f;
+  border: none; border-radius: var(--radius-xs);
+  font-family: 'Syne', sans-serif;
+  font-size: .76rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase;
+  cursor: pointer; transition: opacity .15s; flex-shrink: 0;
+}
+.api-key-row button:hover { opacity: .88; }
+
 /* ── Sync button ── */
 .sync-btn svg { width: 15px; height: 15px; display: block; }
 

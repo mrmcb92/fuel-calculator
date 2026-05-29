@@ -46,6 +46,16 @@ const TRADUCERI = {
     syncConnecting: 'Connecting...',
     syncConnected:  'Synced',
     syncOffline:    'Offline — using local profiles',
+    fuelType:       'Fuel type',
+    fuelApiTitle:   'Fuel Prices API',
+    fuelApiDesc:    'collectapi.com key — free at collectapi.com · 100 req/month, cached 24h:',
+    fuelApiSave:    'Save',
+    fuelApiSaved:   'Key saved! Prices will refresh shortly.',
+    fuelApiCleared: 'Key removed. Using default prices.',
+    priceDefault:   'default prices',
+    priceLive:      'live',
+    priceLoading:   'updating...',
+    priceRonOnly:   'live prices in RON only',
     eroareNaN:      (f) => `"${f}" is not a valid number.`,
     eroareInterval: (f, a, b) => `"${f}" must be between ${a} and ${b}.`,
   },
@@ -94,6 +104,16 @@ const TRADUCERI = {
     syncConnecting: 'Se conectează...',
     syncConnected:  'Sincronizat',
     syncOffline:    'Offline — profiluri locale',
+    fuelType:       'Tip combustibil',
+    fuelApiTitle:   'API Prețuri Combustibil',
+    fuelApiDesc:    'Cheie collectapi.com — gratuit la collectapi.com · 100 req/lună, cache 24h:',
+    fuelApiSave:    'Salvează',
+    fuelApiSaved:   'Cheie salvată! Prețurile se vor actualiza în curând.',
+    fuelApiCleared: 'Cheie ștearsă. Se folosesc prețuri implicite.',
+    priceDefault:   'prețuri implicite',
+    priceLive:      'live',
+    priceLoading:   'se actualizează...',
+    priceRonOnly:   'prețuri live doar în RON',
     eroareNaN:      (f) => `Câmpul „${f}" nu este valid.`,
     eroareInterval: (f, a, b) => `„${f}" trebuie să fie între ${a} și ${b}.`,
   }
@@ -237,6 +257,11 @@ function openSyncModal() {
   document.getElementById('sync-code-display').textContent = syncId || '------';
   document.getElementById('sync-code-input').value = '';
   document.getElementById('sync-feedback').textContent = '';
+  // Pre-fill saved API key
+  const apiInput = document.getElementById('fuel-api-input');
+  if (apiInput) apiInput.value = getCollectApiKey();
+  const apiFb = document.getElementById('fuel-api-feedback');
+  if (apiFb) apiFb.textContent = '';
   document.getElementById('sync-modal').style.display = '';
 }
 
@@ -297,6 +322,179 @@ function toL100(val, unit) {
 const CONSUM_PLACEHOLDER = { L100: '6.5', kmL: '15.4', mpg: '36' };
 const CONSUM_LABEL       = { L100: 'L/100', kmL: 'km/L', mpg: 'mpg' };
 
+// ── Fuel prices ───────────────────────────────────────────────────────────────
+
+// Default fallback prices for Romania (RON/L) — approximate as of 2026
+const FUEL_DEFAULTS_RON = { B95: 7.20, B98: 7.85, Diesel: 7.00, GPL: 3.50 };
+const FUEL_CACHE_KEY    = 'comb_fuelPrices';
+const FUEL_CACHE_TTL    = 24 * 60 * 60 * 1000; // 24 hours
+
+let selectedFuelType = localStorage.getItem('comb_fuelType') || '';
+
+// ── Fuel price functions ──────────────────────────────────────────────────────
+
+function getCollectApiKey() {
+  return (localStorage.getItem('comb_collectApiKey') || '').trim();
+}
+
+function loadFuelPriceCache() {
+  try { return JSON.parse(localStorage.getItem(FUEL_CACHE_KEY) || 'null'); } catch { return null; }
+}
+
+function parseCollectApiResponse(data) {
+  if (!data || !data.success || !Array.isArray(data.result)) return null;
+  const prices = { ...FUEL_DEFAULTS_RON };
+  for (const item of data.result) {
+    const type  = String(item.gasType || '').toLowerCase();
+    const price = parseFloat(String(item.price || '').replace(',', '.'));
+    if (isNaN(price) || price <= 0) continue;
+    if (type.includes('gasoline') || type.includes('petrol')) {
+      prices.B95 = Math.round(price * 100) / 100;
+      prices.B98 = Math.round((price + 0.65) * 100) / 100;
+    } else if (type.includes('diesel')) {
+      prices.Diesel = Math.round(price * 100) / 100;
+    } else if (type.includes('lpg') || type.includes('autogas')) {
+      prices.GPL = Math.round(price * 100) / 100;
+    }
+  }
+  return prices;
+}
+
+async function fetchFuelPrices() {
+  const apiKey = getCollectApiKey();
+  if (!apiKey) return null;
+  try {
+    const res = await fetch(
+      'https://api.collectapi.com/gasPrice/country?country=RO',
+      { headers: { Authorization: 'apikey ' + apiKey, 'Content-Type': 'application/json' } }
+    );
+    if (!res.ok) return null;
+    const data   = await res.json();
+    const prices = parseCollectApiResponse(data);
+    if (!prices) return null;
+    const cache = { prices, timestamp: Date.now(), source: 'live' };
+    localStorage.setItem(FUEL_CACHE_KEY, JSON.stringify(cache));
+    return cache;
+  } catch (e) {
+    console.warn('Fuel price fetch failed:', e);
+    return null;
+  }
+}
+
+function getCurrentFuelPrices() {
+  const cache = loadFuelPriceCache();
+  return cache?.prices || FUEL_DEFAULTS_RON;
+}
+
+async function initFuelPrices() {
+  const cache = loadFuelPriceCache();
+  const now   = Date.now();
+
+  if (cache && (now - cache.timestamp) < FUEL_CACHE_TTL) {
+    updatePriceFreshness(cache.timestamp, 'live');
+  } else if (getCollectApiKey()) {
+    updatePriceFreshness(null, 'loading');
+    const fresh = await fetchFuelPrices();
+    updatePriceFreshness(fresh ? fresh.timestamp : null, fresh ? 'live' : 'default');
+  } else {
+    updatePriceFreshness(null, 'default');
+  }
+
+  if (selectedFuelType) {
+    updateFuelTypeButtons();
+    applyFuelTypePrice(selectedFuelType, false);
+  }
+}
+
+async function refreshFuelPrices() {
+  // Force re-fetch regardless of cache age
+  localStorage.removeItem(FUEL_CACHE_KEY);
+  updatePriceFreshness(null, 'loading');
+  const fresh = await fetchFuelPrices();
+  updatePriceFreshness(fresh ? fresh.timestamp : null, fresh ? 'live' : 'default');
+  if (selectedFuelType) applyFuelTypePrice(selectedFuelType, true);
+  showToast(fresh ? t().priceLive + ' ✓' : t().priceDefault);
+}
+
+function selectFuelType(type) {
+  selectedFuelType = type;
+  localStorage.setItem('comb_fuelType', type);
+  updateFuelTypeButtons();
+  applyFuelTypePrice(type, true);
+}
+
+function applyFuelTypePrice(type, overwrite) {
+  if (currency !== 'RON') {
+    // Don't auto-fill for non-RON currencies — prices are RON-based
+    return;
+  }
+  const prices = getCurrentFuelPrices();
+  const price  = prices[type];
+  if (!price) return;
+  const pretEl = document.getElementById('pret');
+  if (!pretEl) return;
+  if (overwrite || !pretEl.value) {
+    pretEl.value = String(price.toFixed(2));
+    recalculeaza();
+  }
+}
+
+function updateFuelTypeButtons() {
+  document.querySelectorAll('#fuel-type-grid .fuel-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.fuel === selectedFuelType);
+  });
+}
+
+function updatePriceFreshness(timestamp, state) {
+  const el = document.getElementById('price-freshness');
+  if (!el) return;
+  const tr = t();
+
+  if (state === 'loading') {
+    el.textContent = tr.priceLoading;
+    el.className   = 'price-freshness loading';
+  } else if (state === 'live' && timestamp) {
+    const locale = limbaActiva === 'ro' ? 'ro-RO' : 'en-GB';
+    const ds = new Date(timestamp).toLocaleString(locale, {
+      day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+    });
+    el.textContent = '↻ ' + ds;
+    el.className   = 'price-freshness live';
+  } else if (state === 'ron-only') {
+    el.textContent = tr.priceRonOnly;
+    el.className   = 'price-freshness';
+  } else {
+    el.textContent = tr.priceDefault;
+    el.className   = 'price-freshness';
+  }
+}
+
+function saveFuelApiKey() {
+  const input = document.getElementById('fuel-api-input');
+  const fb    = document.getElementById('fuel-api-feedback');
+  const tr    = t();
+  const val   = (input?.value || '').trim();
+
+  localStorage.setItem('comb_collectApiKey', val);
+  if (val) {
+    // Remove old cache to force a fresh fetch
+    localStorage.removeItem(FUEL_CACHE_KEY);
+    fb.textContent = tr.fuelApiSaved;
+    fb.className   = 'sync-feedback ok';
+    // Kick off a fetch in the background
+    updatePriceFreshness(null, 'loading');
+    fetchFuelPrices().then(fresh => {
+      updatePriceFreshness(fresh ? fresh.timestamp : null, fresh ? 'live' : 'default');
+      if (selectedFuelType) applyFuelTypePrice(selectedFuelType, true);
+    });
+  } else {
+    fb.textContent = tr.fuelApiCleared;
+    fb.className   = 'sync-feedback ok';
+    updatePriceFreshness(null, 'default');
+  }
+  setTimeout(() => { if (fb) fb.textContent = ''; }, 3000);
+}
+
 // ── Language ─────────────────────────────────────────────────────────────────
 
 function aplicaLimba() {
@@ -311,6 +509,7 @@ function aplicaLimba() {
     'label-distanta':     tr.distanta,
     'label-tur-retur':    tr.turRetur,
     'label-consum':       tr.consum,
+    'label-fuel-type':    tr.fuelType,
     'label-pret':         tr.pret,
     'label-pasageri':     tr.pasageri,
     'label-split':        tr.split,
@@ -326,6 +525,8 @@ function aplicaLimba() {
     'modal-sync-desc2':   tr.syncDesc2,
     'label-copy-sync':    tr.syncCopy,
     'label-apply-sync':   tr.syncApply,
+    'modal-api-title':    tr.fuelApiTitle,
+    'label-save-api':     tr.fuelApiSave,
   };
   for (const [id, text] of Object.entries(ids)) {
     const el = document.getElementById(id);
@@ -334,6 +535,15 @@ function aplicaLimba() {
   document.getElementById('btn-limba').textContent = limbaActiva === 'en' ? 'RO' : 'EN';
   document.documentElement.lang = limbaActiva;
   updateCurrencyLabels();
+  // Re-render price freshness with updated language
+  const cache = loadFuelPriceCache();
+  if (cache && cache.source === 'live') {
+    updatePriceFreshness(cache.timestamp, 'live');
+  } else if (getCollectApiKey() && !cache) {
+    updatePriceFreshness(null, 'loading');
+  } else {
+    updatePriceFreshness(null, currency !== 'RON' && selectedFuelType ? 'ron-only' : 'default');
+  }
   if (lastResult) afiseazaRezultat(lastResult);
   renderHistory();
 }
@@ -353,6 +563,12 @@ function setCurrency(cur) {
     b.classList.toggle('active', b.dataset.cur === cur);
   });
   updateCurrencyLabels();
+  // When switching back to RON and a fuel type is selected, auto-fill price
+  if (cur === 'RON' && selectedFuelType) {
+    applyFuelTypePrice(selectedFuelType, true);
+  } else if (cur !== 'RON' && selectedFuelType) {
+    updatePriceFreshness(null, 'ron-only');
+  }
   if (lastResult) afiseazaRezultat(lastResult);
 }
 
@@ -709,7 +925,7 @@ function deleteProfile() {
 // ── Reset ─────────────────────────────────────────────────────────────────────
 
 function resetForm() {
-  ['distanta', 'consum', 'pret'].forEach(id => document.getElementById(id).value = '');
+  ['distanta', 'consum'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('tur-retur').checked    = false;
   document.getElementById('split-toggle').checked = false;
   document.getElementById('pasageri-wrap').style.display = 'none';
@@ -717,6 +933,12 @@ function resetForm() {
   document.getElementById('rezultat-wrap').style.display = 'none';
   document.getElementById('share-row').style.display     = 'none';
   lastResult = null;
+  // Re-apply fuel type price if one is selected, otherwise clear price
+  if (selectedFuelType && currency === 'RON') {
+    applyFuelTypePrice(selectedFuelType, true);
+  } else {
+    document.getElementById('pret').value = '';
+  }
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
@@ -741,6 +963,8 @@ function incarca() {
   updateCurrencyLabels();
   aplicaLimba();
   initFirebase();
+  updateFuelTypeButtons();
+  initFuelPrices();
   recalculeaza();
 
   document.querySelectorAll('input[type=number]').forEach(inp => {
@@ -765,8 +989,11 @@ window.saveProfile   = saveProfile;
 window.loadProfile   = loadProfile;
 window.deleteProfile = deleteProfile;
 window.resetForm     = resetForm;
-window.openSyncModal  = openSyncModal;
-window.closeSyncModal = closeSyncModal;
-window.onOverlayClick = onOverlayClick;
-window.copySyncCode   = copySyncCode;
-window.applySyncCode  = applySyncCode;
+window.openSyncModal      = openSyncModal;
+window.closeSyncModal     = closeSyncModal;
+window.onOverlayClick     = onOverlayClick;
+window.copySyncCode       = copySyncCode;
+window.applySyncCode      = applySyncCode;
+window.selectFuelType     = selectFuelType;
+window.refreshFuelPrices  = refreshFuelPrices;
+window.saveFuelApiKey     = saveFuelApiKey;
