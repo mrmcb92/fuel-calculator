@@ -488,9 +488,7 @@ function aplicaLimba() {
   // Re-render price freshness with updated language
   const cache = loadFuelPriceCache();
   if (cache && cache.source === 'live') {
-    updatePriceFreshness(cache.timestamp, 'live');
-  } else if (getCollectApiKey() && !cache) {
-    updatePriceFreshness(null, 'loading');
+    updatePriceFreshness(cache.updatedAt || cache.timestamp, 'live');
   } else {
     updatePriceFreshness(null, currency !== 'RON' && selectedFuelType ? 'ron-only' : 'default');
   }
