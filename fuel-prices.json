@@ -3,9 +3,9 @@
   "source": "globalpetrolprices.com",
   "currency": "RON",
   "prices": {
-    "B95": 6.13,
-    "B98": 6.78,
-    "Diesel": 6.34,
-    "GPL": 3.5
+    "B95": 9.43,
+    "B98": 10.08,
+    "Diesel": 9.53,
+    "GPL": 4.41
   }
 }

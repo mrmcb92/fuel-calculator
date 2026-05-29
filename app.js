@@ -309,8 +309,8 @@ const CONSUM_LABEL       = { L100: 'L/100', kmL: 'km/L', mpg: 'mpg' };
 
 // ── Fuel prices ───────────────────────────────────────────────────────────────
 
-// Default fallback prices for Romania (RON/L) — approximate as of 2026
-const FUEL_DEFAULTS_RON = { B95: 7.20, B98: 7.85, Diesel: 7.00, GPL: 3.50 };
+// Default fallback prices for Romania (RON/L) — updated May 2026
+const FUEL_DEFAULTS_RON = { B95: 9.43, B98: 10.08, Diesel: 9.53, GPL: 4.41 };
 const FUEL_CACHE_KEY    = 'comb_fuelPrices';
 const FUEL_CACHE_TTL    = 24 * 60 * 60 * 1000; // 24 hours
 

@@ -31,6 +31,7 @@ HEADERS = {
         "Chrome/124.0.0.0 Safari/537.36"
     ),
     "Accept-Language": "en-US,en;q=0.9",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
 }
 
 URLS = {
@@ -39,8 +40,8 @@ URLS = {
     "GPL":    "https://www.globalpetrolprices.com/Romania/lpg_prices/",
 }
 
-# Sanity range for Romanian fuel prices (RON/L)
-PRICE_MIN = 1.0
+# Sanity bounds for Romanian fuel prices (RON/L)
+PRICE_MIN = 2.0
 PRICE_MAX = 30.0
 
 
@@ -50,62 +51,20 @@ def load_current_prices():
             return json.load(f)
     except Exception:
         return {
-            "prices": {"B95": 7.20, "B98": 7.85, "Diesel": 7.00, "GPL": 3.50}
+            "prices": {"B95": 9.43, "B98": 10.08, "Diesel": 9.53, "GPL": 4.41}
         }
 
 
-def parse_price_from_page(html: str) -> float | None:
-    """
-    GlobalPetrolPrices.com shows prices in a table (#graphPageTable).
-    The most recent week is the last row; price column is index 1.
-    Falls back to a regex search if the table structure changes.
-    """
-    soup = BeautifulSoup(html, "html.parser")
-
-    # Strategy 1: named table with rows
-    table = soup.find("table", {"id": "graphPageTable"})
-    if not table:
-        table = soup.find("table", class_=re.compile(r"graph", re.I))
-
-    if table:
-        rows = table.find_all("tr")
-        # Walk from the bottom (most recent) to find a numeric price
-        for row in reversed(rows[1:]):
-            cells = row.find_all("td")
-            if len(cells) >= 2:
-                raw = cells[1].get_text(" ", strip=True)
-                price = _to_float(raw)
-                if price and PRICE_MIN < price < PRICE_MAX:
-                    return price
-
-    # Strategy 2: regex over the full page text looking for "X.XX RON"
-    matches = re.findall(r"(\d{1,2}[.,]\d{1,3})\s*RON", html)
-    for m in matches:
-        price = _to_float(m)
-        if price and PRICE_MIN < price < PRICE_MAX:
-            return price
-
-    # Strategy 3: any decimal number that looks like a Romanian fuel price
-    # (between 5 and 15 RON/L is a reasonable modern range)
-    matches = re.findall(r"\b([5-9]\.\d{2}|1[0-4]\.\d{2})\b", html)
-    if matches:
-        price = _to_float(matches[0])
-        if price:
-            return price
-
-    return None
-
-
 def _to_float(text: str) -> float | None:
-    """Convert price string like '7.20', '7,20', '7.200' to float."""
-    clean = re.sub(r"[^\d.,]", "", text).strip()
-    # Handle Romanian thousands separator: "1.234,56" -> European format
+    """Convert price string like '9.43', '9,43' to float."""
+    clean = re.sub(r"[^\d.,]", "", str(text)).strip()
+    if not clean:
+        return None
+    # Handle thousands separator: "1.234,56" (European) or "1,234.56" (US)
     if "," in clean and "." in clean:
         if clean.index(".") < clean.index(","):
-            # 1.234,56 -> 1234.56
             clean = clean.replace(".", "").replace(",", ".")
         else:
-            # 1,234.56 (US format)
             clean = clean.replace(",", "")
     elif "," in clean:
         clean = clean.replace(",", ".")
@@ -115,6 +74,61 @@ def _to_float(text: str) -> float | None:
         return None
 
 
+def parse_price_from_page(html: str) -> float | None:
+    """
+    Extract the most recent weekly fuel price (RON/L) from a
+    globalpetrolprices.com country page.
+
+    Note: the table on these pages is sorted NEWEST FIRST — the first
+    data row (index 1) contains the current week's price.
+    """
+    soup = BeautifulSoup(html, "html.parser")
+
+    # ── Strategy 1: Named price table (newest row = rows[1]) ──────────────
+    table = (
+        soup.find("table", {"id": "graphPageTable"})
+        or soup.find("table", class_=re.compile(r"graph", re.I))
+    )
+    if table:
+        rows = table.find_all("tr")
+        # Rows are newest-first; try the first few data rows only
+        for row in rows[1:4]:
+            cells = row.find_all("td")
+            if len(cells) < 2:
+                continue
+            # Column 1 is typically the local-currency price (RON)
+            for col_idx in [1, 2]:
+                if col_idx >= len(cells):
+                    continue
+                raw = cells[col_idx].get_text(" ", strip=True)
+                price = _to_float(raw)
+                if price and PRICE_MIN < price < PRICE_MAX:
+                    return price
+
+    # ── Strategy 2: "RON X.XX" pattern (how the page displays prices) ────
+    matches = re.findall(r"RON\s+(\d{1,2}[.,]\d{1,3})", html)
+    for m in matches:
+        price = _to_float(m)
+        if price and PRICE_MIN < price < PRICE_MAX:
+            return price
+
+    # ── Strategy 3: "X.XX RON" pattern (alternate layout) ────────────────
+    matches = re.findall(r"(\d{1,2}[.,]\d{1,3})\s*RON\b", html)
+    for m in matches:
+        price = _to_float(m)
+        if price and PRICE_MIN < price < PRICE_MAX:
+            return price
+
+    # ── Strategy 4: broad number scan (last resort) ───────────────────────
+    # Look for values in the realistic Romanian fuel price range
+    matches = re.findall(r"\b(\d{1,2}\.\d{2})\b", html)
+    candidates = [_to_float(m) for m in matches if _to_float(m) and 5.0 < (_to_float(m) or 0) < PRICE_MAX]
+    if candidates:
+        return candidates[0]
+
+    return None
+
+
 def fetch_price(fuel: str) -> float | None:
     url = URLS.get(fuel)
     if not url:
@@ -122,8 +136,7 @@ def fetch_price(fuel: str) -> float | None:
     try:
         r = requests.get(url, headers=HEADERS, timeout=20)
         r.raise_for_status()
-        price = parse_price_from_page(r.text)
-        return price
+        return parse_price_from_page(r.text)
     except Exception as exc:
         print(f"  ⚠  {fuel}: request failed — {exc}")
         return None
@@ -149,10 +162,10 @@ def main():
             print(f"  –  {fuel}: could not fetch, keeping {kept} RON/L")
 
     result = {
-        "updated": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-        "source":  "globalpetrolprices.com" if fetched_any else "manual",
+        "updated":  datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+        "source":   "globalpetrolprices.com" if fetched_any else "manual",
         "currency": "RON",
-        "prices": prices,
+        "prices":   prices,
     }
 
     with open(PRICES_FILE, "w") as f:
