@@ -1,0 +1,11 @@
+{
+  "updated": "2026-05-29T06:00:00.000Z",
+  "source": "manual",
+  "currency": "RON",
+  "prices": {
+    "B95": 7.20,
+    "B98": 7.85,
+    "Diesel": 7.00,
+    "GPL": 3.50
+  }
+}

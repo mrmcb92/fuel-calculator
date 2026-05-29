@@ -47,11 +47,6 @@ const TRADUCERI = {
     syncConnected:  'Synced',
     syncOffline:    'Offline — using local profiles',
     fuelType:       'Fuel type',
-    fuelApiTitle:   'Fuel Prices API',
-    fuelApiDesc:    'collectapi.com key — free at collectapi.com · 100 req/month, cached 24h:',
-    fuelApiSave:    'Save',
-    fuelApiSaved:   'Key saved! Prices will refresh shortly.',
-    fuelApiCleared: 'Key removed. Using default prices.',
     priceDefault:   'default prices',
     priceLive:      'live',
     priceLoading:   'updating...',
@@ -105,11 +100,6 @@ const TRADUCERI = {
     syncConnected:  'Sincronizat',
     syncOffline:    'Offline — profiluri locale',
     fuelType:       'Tip combustibil',
-    fuelApiTitle:   'API Prețuri Combustibil',
-    fuelApiDesc:    'Cheie collectapi.com — gratuit la collectapi.com · 100 req/lună, cache 24h:',
-    fuelApiSave:    'Salvează',
-    fuelApiSaved:   'Cheie salvată! Prețurile se vor actualiza în curând.',
-    fuelApiCleared: 'Cheie ștearsă. Se folosesc prețuri implicite.',
     priceDefault:   'prețuri implicite',
     priceLive:      'live',
     priceLoading:   'se actualizează...',
@@ -257,11 +247,6 @@ function openSyncModal() {
   document.getElementById('sync-code-display').textContent = syncId || '------';
   document.getElementById('sync-code-input').value = '';
   document.getElementById('sync-feedback').textContent = '';
-  // Pre-fill saved API key
-  const apiInput = document.getElementById('fuel-api-input');
-  if (apiInput) apiInput.value = getCollectApiKey();
-  const apiFb = document.getElementById('fuel-api-feedback');
-  if (apiFb) apiFb.textContent = '';
   document.getElementById('sync-modal').style.display = '';
 }
 
@@ -333,46 +318,35 @@ let selectedFuelType = localStorage.getItem('comb_fuelType') || '';
 
 // ── Fuel price functions ──────────────────────────────────────────────────────
 
-function getCollectApiKey() {
-  return (localStorage.getItem('comb_collectApiKey') || '').trim();
-}
+// Prices are served from the repo's fuel-prices.json via GitHub raw CDN.
+// A GitHub Actions workflow (/.github/workflows/update-fuel-prices.yml)
+// updates the file automatically every Monday — no API key needed.
+const FUEL_PRICES_URL =
+  'https://raw.githubusercontent.com/mrmcb92/fuel-calculator/main/fuel-prices.json';
 
 function loadFuelPriceCache() {
   try { return JSON.parse(localStorage.getItem(FUEL_CACHE_KEY) || 'null'); } catch { return null; }
 }
 
-function parseCollectApiResponse(data) {
-  if (!data || !data.success || !Array.isArray(data.result)) return null;
-  const prices = { ...FUEL_DEFAULTS_RON };
-  for (const item of data.result) {
-    const type  = String(item.gasType || '').toLowerCase();
-    const price = parseFloat(String(item.price || '').replace(',', '.'));
-    if (isNaN(price) || price <= 0) continue;
-    if (type.includes('gasoline') || type.includes('petrol')) {
-      prices.B95 = Math.round(price * 100) / 100;
-      prices.B98 = Math.round((price + 0.65) * 100) / 100;
-    } else if (type.includes('diesel')) {
-      prices.Diesel = Math.round(price * 100) / 100;
-    } else if (type.includes('lpg') || type.includes('autogas')) {
-      prices.GPL = Math.round(price * 100) / 100;
-    }
-  }
-  return prices;
-}
-
 async function fetchFuelPrices() {
-  const apiKey = getCollectApiKey();
-  if (!apiKey) return null;
   try {
-    const res = await fetch(
-      'https://api.collectapi.com/gasPrice/country?country=RO',
-      { headers: { Authorization: 'apikey ' + apiKey, 'Content-Type': 'application/json' } }
-    );
+    const res = await fetch(FUEL_PRICES_URL + '?t=' + Date.now());
     if (!res.ok) return null;
-    const data   = await res.json();
-    const prices = parseCollectApiResponse(data);
-    if (!prices) return null;
-    const cache = { prices, timestamp: Date.now(), source: 'live' };
+    const data = await res.json();
+    if (!data.prices) return null;
+    // Validate each value is a positive number
+    const prices = {};
+    for (const [k, v] of Object.entries(data.prices)) {
+      const n = parseFloat(v);
+      if (!isNaN(n) && n > 0) prices[k] = Math.round(n * 100) / 100;
+    }
+    if (!Object.keys(prices).length) return null;
+    const cache = {
+      prices,
+      timestamp:  Date.now(),
+      updatedAt:  data.updated || null,
+      source:     'live',
+    };
     localStorage.setItem(FUEL_CACHE_KEY, JSON.stringify(cache));
     return cache;
   } catch (e) {
@@ -391,13 +365,14 @@ async function initFuelPrices() {
   const now   = Date.now();
 
   if (cache && (now - cache.timestamp) < FUEL_CACHE_TTL) {
-    updatePriceFreshness(cache.timestamp, 'live');
-  } else if (getCollectApiKey()) {
+    updatePriceFreshness(cache.updatedAt || cache.timestamp, 'live');
+  } else {
     updatePriceFreshness(null, 'loading');
     const fresh = await fetchFuelPrices();
-    updatePriceFreshness(fresh ? fresh.timestamp : null, fresh ? 'live' : 'default');
-  } else {
-    updatePriceFreshness(null, 'default');
+    updatePriceFreshness(
+      fresh ? (fresh.updatedAt || fresh.timestamp) : null,
+      fresh ? 'live' : 'default'
+    );
   }
 
   if (selectedFuelType) {
@@ -407,11 +382,13 @@ async function initFuelPrices() {
 }
 
 async function refreshFuelPrices() {
-  // Force re-fetch regardless of cache age
   localStorage.removeItem(FUEL_CACHE_KEY);
   updatePriceFreshness(null, 'loading');
   const fresh = await fetchFuelPrices();
-  updatePriceFreshness(fresh ? fresh.timestamp : null, fresh ? 'live' : 'default');
+  updatePriceFreshness(
+    fresh ? (fresh.updatedAt || fresh.timestamp) : null,
+    fresh ? 'live' : 'default'
+  );
   if (selectedFuelType) applyFuelTypePrice(selectedFuelType, true);
   showToast(fresh ? t().priceLive + ' ✓' : t().priceDefault);
 }
@@ -469,31 +446,6 @@ function updatePriceFreshness(timestamp, state) {
   }
 }
 
-function saveFuelApiKey() {
-  const input = document.getElementById('fuel-api-input');
-  const fb    = document.getElementById('fuel-api-feedback');
-  const tr    = t();
-  const val   = (input?.value || '').trim();
-
-  localStorage.setItem('comb_collectApiKey', val);
-  if (val) {
-    // Remove old cache to force a fresh fetch
-    localStorage.removeItem(FUEL_CACHE_KEY);
-    fb.textContent = tr.fuelApiSaved;
-    fb.className   = 'sync-feedback ok';
-    // Kick off a fetch in the background
-    updatePriceFreshness(null, 'loading');
-    fetchFuelPrices().then(fresh => {
-      updatePriceFreshness(fresh ? fresh.timestamp : null, fresh ? 'live' : 'default');
-      if (selectedFuelType) applyFuelTypePrice(selectedFuelType, true);
-    });
-  } else {
-    fb.textContent = tr.fuelApiCleared;
-    fb.className   = 'sync-feedback ok';
-    updatePriceFreshness(null, 'default');
-  }
-  setTimeout(() => { if (fb) fb.textContent = ''; }, 3000);
-}
 
 // ── Language ─────────────────────────────────────────────────────────────────
 
@@ -525,8 +477,6 @@ function aplicaLimba() {
     'modal-sync-desc2':   tr.syncDesc2,
     'label-copy-sync':    tr.syncCopy,
     'label-apply-sync':   tr.syncApply,
-    'modal-api-title':    tr.fuelApiTitle,
-    'label-save-api':     tr.fuelApiSave,
   };
   for (const [id, text] of Object.entries(ids)) {
     const el = document.getElementById(id);
@@ -996,4 +946,3 @@ window.copySyncCode       = copySyncCode;
 window.applySyncCode      = applySyncCode;
 window.selectFuelType     = selectFuelType;
 window.refreshFuelPrices  = refreshFuelPrices;
-window.saveFuelApiKey     = saveFuelApiKey;

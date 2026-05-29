@@ -1,0 +1,40 @@
+name: Update Fuel Prices
+
+on:
+  schedule:
+    # Every Monday at 07:00 UTC (09:00 Romania time — after GlobalPetrolPrices updates)
+    - cron: "0 7 * * 1"
+  workflow_dispatch: # Allow manual trigger from GitHub Actions tab
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install requests beautifulsoup4
+
+      - name: Fetch fuel prices
+        run: python scripts/fetch_fuel_prices.py
+
+      - name: Commit updated prices (if changed)
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add fuel-prices.json
+          if git diff --cached --quiet; then
+            echo "No price changes — nothing to commit."
+          else
+            git commit -m "chore: update fuel prices $(date -u '+%Y-%m-%d')"
+            git push
+          fi
