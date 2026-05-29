@@ -76,55 +76,56 @@ def _to_float(text: str) -> float | None:
 
 def parse_price_from_page(html: str) -> float | None:
     """
-    Extract the most recent weekly fuel price (RON/L) from a
-    globalpetrolprices.com country page.
+    Extract the current fuel price (RON/L) from a globalpetrolprices.com page.
 
-    Note: the table on these pages is sorted NEWEST FIRST — the first
-    data row (index 1) contains the current week's price.
+    The page body contains:
+      "The current gasoline price in Romania is RON 9.43 per liter..."
+    The meta tags contain the historical average ("RON 6.13 per liter") which
+    must be ignored. We search specifically for the "current price" sentence.
     """
-    soup = BeautifulSoup(html, "html.parser")
 
-    # ── Strategy 1: Named price table (newest row = rows[1]) ──────────────
-    table = (
-        soup.find("table", {"id": "graphPageTable"})
-        or soup.find("table", class_=re.compile(r"graph", re.I))
+    # ── Strategy 1: exact "current ... price in Romania is RON X.XX" ─────
+    # Matches the body paragraph, NOT the meta-tag average.
+    m = re.search(
+        r"current\s+\w+\s+price\s+in\s+Romania\s+is\s+RON\s+(\d{1,2}[.,]\d{2,3})",
+        html, re.IGNORECASE
     )
-    if table:
-        rows = table.find_all("tr")
-        # Rows are newest-first; try the first few data rows only
-        for row in rows[1:4]:
-            cells = row.find_all("td")
-            if len(cells) < 2:
-                continue
-            # Column 1 is typically the local-currency price (RON)
-            for col_idx in [1, 2]:
-                if col_idx >= len(cells):
-                    continue
-                raw = cells[col_idx].get_text(" ", strip=True)
-                price = _to_float(raw)
-                if price and PRICE_MIN < price < PRICE_MAX:
-                    return price
-
-    # ── Strategy 2: "RON X.XX" pattern (how the page displays prices) ────
-    matches = re.findall(r"RON\s+(\d{1,2}[.,]\d{1,3})", html)
-    for m in matches:
-        price = _to_float(m)
+    if m:
+        price = _to_float(m.group(1))
         if price and PRICE_MIN < price < PRICE_MAX:
             return price
 
-    # ── Strategy 3: "X.XX RON" pattern (alternate layout) ────────────────
-    matches = re.findall(r"(\d{1,2}[.,]\d{1,3})\s*RON\b", html)
-    for m in matches:
-        price = _to_float(m)
+    # ── Strategy 2: "current price ... RON X.XX per liter" (alt wording) ─
+    m = re.search(
+        r"current\s+price\b.{0,80}RON\s+(\d{1,2}[.,]\d{2,3})\s+per\s+liter",
+        html, re.IGNORECASE | re.DOTALL
+    )
+    if m:
+        price = _to_float(m.group(1))
         if price and PRICE_MIN < price < PRICE_MAX:
             return price
 
-    # ── Strategy 4: broad number scan (last resort) ───────────────────────
-    # Look for values in the realistic Romanian fuel price range
-    matches = re.findall(r"\b(\d{1,2}\.\d{2})\b", html)
-    candidates = [_to_float(m) for m in matches if _to_float(m) and 5.0 < (_to_float(m) or 0) < PRICE_MAX]
+    # ── Strategy 3: "updated on DD-Mon-YYYY" → price in same paragraph ───
+    # Finds the sentence that ends with "updated on <date>" — that's current.
+    m = re.search(
+        r"RON\s+(\d{1,2}[.,]\d{2,3})\s+per\s+liter.{0,60}updated\s+on",
+        html, re.IGNORECASE | re.DOTALL
+    )
+    if m:
+        price = _to_float(m.group(1))
+        if price and PRICE_MIN < price < PRICE_MAX:
+            return price
+
+    # ── Strategy 4: last-resort — all "RON X.XX per liter", take highest ─
+    # The current price is typically the highest recent value.
+    matches = re.findall(r"RON\s+(\d{1,2}[.,]\d{2,3})\s+per\s+liter", html, re.IGNORECASE)
+    candidates = []
+    for raw in matches:
+        price = _to_float(raw)
+        if price and PRICE_MIN < price < PRICE_MAX:
+            candidates.append(price)
     if candidates:
-        return candidates[0]
+        return max(candidates)   # highest = most recent in an upward trend
 
     return None
 
