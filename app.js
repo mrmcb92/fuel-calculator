@@ -47,7 +47,8 @@ const TRADUCERI = {
     syncConnected:  'Synced',
     syncOffline:    'Offline — using local profiles',
     fuelType:       'Fuel type',
-    priceDefault:   'default prices',
+    priceDefault:   'default prices · tap to refresh',
+    priceUpdated:   'updated',
     priceLive:      'live',
     priceLoading:   'updating...',
     priceRonOnly:   'live prices in RON only',
@@ -100,7 +101,8 @@ const TRADUCERI = {
     syncConnected:  'Sincronizat',
     syncOffline:    'Offline — profiluri locale',
     fuelType:       'Tip combustibil',
-    priceDefault:   'prețuri implicite',
+    priceDefault:   'prețuri implicite · apasă pentru refresh',
+    priceUpdated:   'actualizat',
     priceLive:      'live',
     priceLoading:   'se actualizează...',
     priceRonOnly:   'prețuri live doar în RON',
@@ -312,7 +314,7 @@ const CONSUM_LABEL       = { L100: 'L/100', kmL: 'km/L', mpg: 'mpg' };
 // Default fallback prices for Romania (RON/L) — updated May 2026
 const FUEL_DEFAULTS_RON = { B95: 9.43, B98: 10.08, Diesel: 9.53, GPL: 4.41 };
 const FUEL_CACHE_KEY    = 'comb_fuelPrices';
-const FUEL_CACHE_TTL    = 24 * 60 * 60 * 1000; // 24 hours
+const FUEL_CACHE_TTL    = 12 * 60 * 60 * 1000; // 12 hours — daily updates
 
 let selectedFuelType = localStorage.getItem('comb_fuelType') || '';
 
@@ -425,17 +427,17 @@ function updateFuelTypeButtons() {
 function updatePriceFreshness(timestamp, state) {
   const el = document.getElementById('price-freshness');
   if (!el) return;
-  const tr = t();
+  const tr     = t();
+  const locale = limbaActiva === 'ro' ? 'ro-RO' : 'en-GB';
 
   if (state === 'loading') {
     el.textContent = tr.priceLoading;
     el.className   = 'price-freshness loading';
   } else if (state === 'live' && timestamp) {
-    const locale = limbaActiva === 'ro' ? 'ro-RO' : 'en-GB';
     const ds = new Date(timestamp).toLocaleString(locale, {
       day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
     });
-    el.textContent = '↻ ' + ds;
+    el.textContent = '↻ ' + tr.priceUpdated + ' ' + ds;
     el.className   = 'price-freshness live';
   } else if (state === 'ron-only') {
     el.textContent = tr.priceRonOnly;

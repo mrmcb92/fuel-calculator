@@ -434,10 +434,14 @@ body {
   letter-spacing: .05em; text-transform: uppercase;
   color: var(--text-muted);
   font-family: 'DM Mono', monospace;
-  transition: color .2s;
+  transition: color .2s, opacity .2s;
+  cursor: pointer;
+  user-select: none;
 }
+.price-freshness:hover  { opacity: .7; }
+.price-freshness:active { opacity: .45; }
 .price-freshness.live    { color: var(--accent); }
-.price-freshness.loading { color: var(--text-muted); animation: blink 1.2s step-start infinite; }
+.price-freshness.loading { color: var(--text-muted); animation: blink 1.2s step-start infinite; cursor: default; }
 
 @keyframes blink { 50% { opacity: .3; } }
 

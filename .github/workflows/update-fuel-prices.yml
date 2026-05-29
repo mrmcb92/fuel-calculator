@@ -2,8 +2,8 @@ name: Update Fuel Prices
 
 on:
   schedule:
-    # Every Monday at 07:00 UTC (09:00 Romania time — after GlobalPetrolPrices updates)
-    - cron: "0 7 * * 1"
+    # Every day at 07:00 UTC (09:00 Romania time — after GlobalPetrolPrices updates)
+    - cron: "0 7 * * *"
   workflow_dispatch: # Allow manual trigger from GitHub Actions tab
 
 jobs:
