@@ -428,6 +428,16 @@ body {
   background: var(--accent-dim);
 }
 
+/* ── Fuel price disclaimer ── */
+.fuel-disclaimer {
+  font-size: .58rem;
+  color: var(--text-muted);
+  font-family: 'DM Mono', monospace;
+  letter-spacing: .02em;
+  margin-top: 7px;
+  line-height: 1.4;
+}
+
 /* ── Price freshness badge ── */
 .price-freshness {
   font-size: .6rem; font-weight: 700;
