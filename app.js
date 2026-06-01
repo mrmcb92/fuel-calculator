@@ -410,16 +410,23 @@ function applyFuelTypePrice(type, overwrite) {
   const prices = getCurrentFuelPrices();
   const price  = prices[type];
   if (!price) return;
+  const val = price.toFixed(2);
+  // Cost tab
   const pretEl = document.getElementById('pret');
-  if (!pretEl) return;
-  if (overwrite || !pretEl.value) {
-    pretEl.value = String(price.toFixed(2));
+  if (pretEl && (overwrite || !pretEl.value)) {
+    pretEl.value = val;
     recalculeaza();
+  }
+  // Range tab
+  const pretREl = document.getElementById('pret-r');
+  if (pretREl && (overwrite || !pretREl.value)) {
+    pretREl.value = val;
+    calcRange();
   }
 }
 
 function updateFuelTypeButtons() {
-  document.querySelectorAll('#fuel-type-grid .fuel-btn').forEach(b => {
+  document.querySelectorAll('#fuel-type-grid .fuel-btn, #fuel-type-grid-r .fuel-btn').forEach(b => {
     b.classList.toggle('active', b.dataset.fuel === selectedFuelType);
   });
 }
@@ -430,21 +437,29 @@ function updatePriceFreshness(timestamp, state) {
   const tr     = t();
   const locale = limbaActiva === 'ro' ? 'ro-RO' : 'en-GB';
 
+  const setText = (elem, text, cls) => {
+    if (!elem) return;
+    elem.textContent = text;
+    elem.className   = cls;
+  };
+  const elR = document.getElementById('price-freshness-r');
+
   if (state === 'loading') {
-    el.textContent = tr.priceLoading;
-    el.className   = 'price-freshness loading';
+    setText(el,  tr.priceLoading, 'price-freshness loading');
+    setText(elR, tr.priceLoading, 'price-freshness loading');
   } else if (state === 'live' && timestamp) {
-    const ds = new Date(timestamp).toLocaleString(locale, {
+    const ds  = new Date(timestamp).toLocaleString(locale, {
       day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
     });
-    el.textContent = '↻ ' + tr.priceUpdated + ' ' + ds;
-    el.className   = 'price-freshness live';
+    const txt = '↻ ' + tr.priceUpdated + ' ' + ds;
+    setText(el,  txt, 'price-freshness live');
+    setText(elR, txt, 'price-freshness live');
   } else if (state === 'ron-only') {
-    el.textContent = tr.priceRonOnly;
-    el.className   = 'price-freshness';
+    setText(el,  tr.priceRonOnly, 'price-freshness');
+    setText(elR, tr.priceRonOnly, 'price-freshness');
   } else {
-    el.textContent = tr.priceDefault;
-    el.className   = 'price-freshness';
+    setText(el,  tr.priceDefault, 'price-freshness');
+    setText(elR, tr.priceDefault, 'price-freshness');
   }
 }
 
@@ -464,6 +479,7 @@ function aplicaLimba() {
     'label-tur-retur':    tr.turRetur,
     'label-consum':       tr.consum,
     'label-fuel-type':    tr.fuelType,
+    'label-fuel-type-r':  tr.fuelType,
     'label-pret':         tr.pret,
     'label-pasageri':     tr.pasageri,
     'label-split':        tr.split,

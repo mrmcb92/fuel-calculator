@@ -164,6 +164,19 @@
           </div>
         </div>
 
+        <div class="field" id="field-fuel-type-r">
+          <div class="field-header">
+            <label id="label-fuel-type-r">Fuel type</label>
+            <span id="price-freshness-r" class="price-freshness" onclick="refreshFuelPrices()" role="button" title="Refresh prices"></span>
+          </div>
+          <div class="fuel-type-grid" id="fuel-type-grid-r">
+            <button class="fuel-btn" data-fuel="B95"    onclick="selectFuelType('B95')">95</button>
+            <button class="fuel-btn" data-fuel="B98"    onclick="selectFuelType('B98')">98</button>
+            <button class="fuel-btn" data-fuel="Diesel" onclick="selectFuelType('Diesel')">Diesel</button>
+            <button class="fuel-btn" data-fuel="GPL"    onclick="selectFuelType('GPL')">GPL</button>
+          </div>
+        </div>
+
         <div class="field">
           <label id="label-pret-r" for="pret-r">Fuel price</label>
           <div class="input-wrap">
