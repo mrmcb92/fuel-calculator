@@ -1,11 +1,11 @@
 {
-  "updated": "2026-06-01T19:15:55.000Z",
+  "updated": "2026-06-08T17:00:28.000Z",
   "source": "globalpetrolprices.com",
   "currency": "RON",
   "prices": {
-    "B95": 9.43,
-    "B98": 10.08,
-    "Diesel": 9.53,
-    "GPL": 4.41
+    "B95": 9.65,
+    "B98": 10.3,
+    "Diesel": 9.64,
+    "GPL": 4.45
   }
 }
