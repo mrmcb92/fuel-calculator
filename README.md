@@ -20,12 +20,12 @@ A progressive web app (PWA) that calculates fuel cost and range based on distanc
 
 ### Fuel type & automatic prices
 - Select fuel type (95 · 98 · Diesel · GPL) to auto-fill the price field
-- Prices are fetched automatically from [globalpetrolprices.com](https://www.globalpetrolprices.com/Romania/) — no API key required
+- Prices are fetched automatically from [peco-online.ro](https://www.peco-online.ro/) (real station prices, refreshed daily), with [globalpetrolprices.com](https://www.globalpetrolprices.com/Romania/) as a fallback — no API key required
 - A **freshness badge** next to the fuel type label shows when prices were last updated (e.g. `↻ updated 02 Jun 16:00`) — tap it to force a manual refresh
 - Prices are cached locally for 12 hours; stale cache is refreshed on next visit
 - If the fetch fails, hardcoded fallback prices are used
 - Auto-fill only works in **RON** currency; a notice is shown for EUR/USD
-- A disclaimer is always visible: *"Indicative prices, updated weekly — may differ slightly at the pump"*
+- A disclaimer is always visible: *"Indicative prices from fuel stations, updated daily — may differ at the pump"*
 
 ### Range calculator
 - Enter a budget, consumption and price → get maximum distance and liters needed
@@ -61,11 +61,11 @@ A progressive web app (PWA) that calculates fuel cost and range based on distanc
 
 ## Automatic price updates
 
-Fuel prices for Romania are scraped weekly from [globalpetrolprices.com](https://www.globalpetrolprices.com/Romania/) and stored in `fuel-prices.json` in the repository. A GitHub Actions workflow runs every **Monday at 14:00 UTC** (16:00 Romania time) — after the source site publishes its weekly update.
+Fuel prices for Romania are scraped daily from [peco-online.ro](https://www.peco-online.ro/) — a portal that aggregates real prices from Romanian stations (Petrom, OMV, Rompetrol, Lukoil, Mol, …) and refreshes daily. If that source is unreachable, the scraper falls back to the national weekly average from [globalpetrolprices.com](https://www.globalpetrolprices.com/Romania/). Results are stored in `fuel-prices.json` in the repository. A GitHub Actions workflow runs every day at **05:00 UTC** (08:00 Romania time).
 
 ```
-.github/workflows/update-fuel-prices.yml   # Cron job: every Monday 14:00 UTC
-scripts/fetch_fuel_prices.py               # Python scraper
+.github/workflows/update-fuel-prices.yml   # Cron job: daily at 05:00 UTC
+scripts/fetch_fuel_prices.py               # Python scraper (peco primary, GPP fallback)
 fuel-prices.json                           # Published prices (served via GitHub raw CDN)
 ```
 
@@ -75,12 +75,12 @@ The app fetches `fuel-prices.json` directly from the GitHub raw CDN (`raw.github
 
 | Fuel | Source | Note |
 |------|--------|-------|
-| 95 (gasoline) | globalpetrolprices.com | scraped directly |
+| 95 (gasoline) | peco-online.ro | avg. of cheapest station price across county-seat cities |
 | 98 (premium) | computed | B95 + 0.65 RON/L |
-| Diesel | globalpetrolprices.com | scraped directly |
-| GPL | globalpetrolprices.com | scraped directly |
+| Diesel | peco-online.ro | avg. of cheapest station price across county-seat cities |
+| GPL | peco-online.ro | avg. of cheapest station price across county-seat cities |
 
-> Prices are **indicative** and reflect the national average published by globalpetrolprices.com. They may differ slightly from prices at your local pump.
+> Prices are **indicative**: they are the average of the cheapest station price in each county-seat city. Your local pump may differ. If peco-online.ro is unavailable, the national weekly average from globalpetrolprices.com is used instead.
 
 ---
 
@@ -143,13 +143,13 @@ fuel-calculator/
 ├── style.css                               # Dark theme, layout, animations
 ├── app.js                                  # Calculation logic, Firebase sync, i18n, fuel prices
 ├── firebase-config.js                      # Firebase credentials (fill in your own)
-├── fuel-prices.json                        # Weekly-updated Romanian fuel prices (RON/L)
+├── fuel-prices.json                        # Daily-updated Romanian fuel prices (RON/L)
 ├── sw.js                                   # Service Worker (cache + offline)
 ├── manifest.json                           # PWA configuration
 ├── scripts/
-│   └── fetch_fuel_prices.py                # Scraper: fetches prices from globalpetrolprices.com
+│   └── fetch_fuel_prices.py                # Scraper: peco-online.ro (primary) + globalpetrolprices.com (fallback)
 ├── .github/workflows/
-│   └── update-fuel-prices.yml              # GitHub Actions cron: every Monday 14:00 UTC
+│   └── update-fuel-prices.yml              # GitHub Actions cron: daily at 05:00 UTC
 ├── icon-nou-192.png
 └── icon-nou-512.png
 ```
@@ -160,7 +160,7 @@ fuel-calculator/
 
 - Vanilla HTML / CSS / JavaScript — no build step, no framework
 - **Firebase Firestore** (compat SDK v10) for cloud profile sync
-- **GitHub Actions** + **Python** (`requests` + `BeautifulSoup4`) for weekly price scraping
+- **GitHub Actions** + **Python** (`requests` + `BeautifulSoup4`) for daily price scraping
 - **GitHub raw CDN** for zero-cost, CORS-friendly JSON delivery
 - Web App Manifest + Service Worker for PWA installation and offline use
 - `Intl.NumberFormat` for locale-aware number formatting
@@ -211,12 +211,12 @@ O aplicație web progresivă (PWA) care calculează costul unui drum și autonom
 
 ### Tip combustibil & prețuri automate
 - Selectează tipul de combustibil (95 · 98 · Diesel · GPL) pentru completarea automată a prețului
-- Prețurile sunt preluate automat de pe [globalpetrolprices.com](https://www.globalpetrolprices.com/Romania/) — fără cheie API
+- Prețurile sunt preluate automat de pe [peco-online.ro](https://www.peco-online.ro/) (prețuri reale din benzinării, actualizate zilnic), cu [globalpetrolprices.com](https://www.globalpetrolprices.com/Romania/) ca rezervă — fără cheie API
 - Un **indicator de prospețime** lângă eticheta tipului de combustibil arată când au fost actualizate prețurile (ex: `↻ actualizat 02 iun 16:00`) — apasă pe el pentru refresh manual
 - Prețurile sunt stocate local în cache timp de 12 ore; cache-ul expirat se reîmprospătează la vizita următoare
 - Dacă preluarea eșuează, se folosesc prețuri de rezervă predefinite
 - Completarea automată funcționează doar în moneda **RON**; pentru EUR/USD se afișează o notificare
-- Un disclaimer este mereu vizibil: *„Prețuri orientative, actualizate săptămânal — pot diferi ușor față de pompă"*
+- Un disclaimer este mereu vizibil: *„Prețuri orientative din benzinării, actualizate zilnic — pot diferi față de pompă"*
 
 ### Calculator autonomie
 - Introdu bugetul, consumul și prețul → afli distanța maximă și litrii necesari
@@ -252,11 +252,11 @@ O aplicație web progresivă (PWA) care calculează costul unui drum și autonom
 
 ## Actualizare automată prețuri
 
-Prețurile combustibililor pentru România sunt preluate săptămânal de pe [globalpetrolprices.com](https://www.globalpetrolprices.com/Romania/) și stocate în fișierul `fuel-prices.json` din repository. Un workflow GitHub Actions rulează în fiecare **luni la 14:00 UTC** (16:00 ora României) — după ce site-ul sursă publică actualizarea săptămânală.
+Prețurile combustibililor pentru România sunt preluate zilnic de pe [peco-online.ro](https://www.peco-online.ro/) — un portal care agregă prețuri reale din benzinăriile din România (Petrom, OMV, Rompetrol, Lukoil, Mol, …) și se actualizează zilnic. Dacă sursa nu e disponibilă, scraperul folosește ca rezervă media națională săptămânală de pe [globalpetrolprices.com](https://www.globalpetrolprices.com/Romania/). Rezultatele sunt stocate în fișierul `fuel-prices.json` din repository. Un workflow GitHub Actions rulează în fiecare zi la **05:00 UTC** (08:00 ora României).
 
 ```
-.github/workflows/update-fuel-prices.yml   # Cron job: în fiecare luni la 14:00 UTC
-scripts/fetch_fuel_prices.py               # Scraper Python
+.github/workflows/update-fuel-prices.yml   # Cron job: zilnic la 05:00 UTC
+scripts/fetch_fuel_prices.py               # Scraper Python (peco primar, GPP rezervă)
 fuel-prices.json                           # Prețurile publicate (servite prin GitHub raw CDN)
 ```
 
@@ -266,12 +266,12 @@ Aplicația preia `fuel-prices.json` direct din CDN-ul raw GitHub (`raw.githubuse
 
 | Combustibil | Sursă | Observație |
 |-------------|-------|------------|
-| 95 (benzină) | globalpetrolprices.com | preluat direct |
+| 95 (benzină) | peco-online.ro | media celui mai mic preț pe orașele reședință de județ |
 | 98 (premium) | calculat | B95 + 0,65 RON/L |
-| Diesel | globalpetrolprices.com | preluat direct |
-| GPL | globalpetrolprices.com | preluat direct |
+| Diesel | peco-online.ro | media celui mai mic preț pe orașele reședință de județ |
+| GPL | peco-online.ro | media celui mai mic preț pe orașele reședință de județ |
 
-> Prețurile sunt **orientative** și reflectă media națională publicată de globalpetrolprices.com. Pot diferi ușor față de prețurile de la pompa din apropierea ta.
+> Prețurile sunt **orientative**: reprezintă media celui mai mic preț din fiecare oraș reședință de județ. Prețul de la pompa din apropierea ta poate diferi. Dacă peco-online.ro nu e disponibil, se folosește media națională săptămânală de pe globalpetrolprices.com.
 
 ---
 
@@ -296,13 +296,13 @@ fuel-calculator/
 ├── style.css                               # Temă dark, layout, animații
 ├── app.js                                  # Logica de calcul, sync Firebase, i18n, prețuri combustibili
 ├── firebase-config.js                      # Credențiale Firebase (completează cu ale tale)
-├── fuel-prices.json                        # Prețuri combustibili România, actualizate săptămânal (RON/L)
+├── fuel-prices.json                        # Prețuri combustibili România, actualizate zilnic (RON/L)
 ├── sw.js                                   # Service Worker (cache + offline)
 ├── manifest.json                           # Configurare PWA
 ├── scripts/
-│   └── fetch_fuel_prices.py                # Scraper: preia prețurile de pe globalpetrolprices.com
+│   └── fetch_fuel_prices.py                # Scraper: peco-online.ro (primar) + globalpetrolprices.com (rezervă)
 ├── .github/workflows/
-│   └── update-fuel-prices.yml              # Cron GitHub Actions: în fiecare luni la 14:00 UTC
+│   └── update-fuel-prices.yml              # Cron GitHub Actions: zilnic la 05:00 UTC
 ├── icon-nou-192.png
 └── icon-nou-512.png
 ```
@@ -313,7 +313,7 @@ fuel-calculator/
 
 - HTML / CSS / JavaScript vanilla — fără build, fără framework
 - **Firebase Firestore** (compat SDK v10) pentru sincronizare profiluri
-- **GitHub Actions** + **Python** (`requests` + `BeautifulSoup4`) pentru preluarea automată săptămânală a prețurilor
+- **GitHub Actions** + **Python** (`requests` + `BeautifulSoup4`) pentru preluarea automată zilnică a prețurilor
 - **GitHub raw CDN** pentru livrare JSON gratuită și compatibilă CORS
 - Web App Manifest + Service Worker pentru instalare PWA și funcționare offline
 - `Intl.NumberFormat` pentru formatare numerică în format românesc
