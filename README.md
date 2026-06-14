@@ -53,6 +53,7 @@ A progressive web app (PWA) that calculates fuel cost and range based on distanc
 
 ### PWA
 - Installable on Android and iOS as a standalone app
+- **Install app** button — an in-app guide for "Add to Home Screen": triggers the native install prompt on Android/Chrome, and shows step-by-step instructions on iOS (where browsers don't expose a prompt). Hidden automatically once the app is installed.
 - Works offline after first visit (Service Worker, stale-while-revalidate)
 - Maskable icon support for Android home screen
 
@@ -243,6 +244,7 @@ O aplicație web progresivă (PWA) care calculează costul unui drum și autonom
 
 ### PWA
 - Instalabilă pe Android și iOS ca aplicație standalone
+- Buton **Instalează aplicația** — un ghid în aplicație pentru „Adaugă la ecranul principal": declanșează promptul nativ de instalare pe Android/Chrome și afișează instrucțiuni pas cu pas pe iOS (unde browserele nu oferă un prompt). Se ascunde automat după instalare.
 - Funcționează offline după prima vizită (Service Worker)
 - Suport iconiță maskable pentru ecranul de pornire Android
 

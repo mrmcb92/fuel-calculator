@@ -53,6 +53,25 @@ const TRADUCERI = {
     priceLoading:   'updating...',
     priceRonOnly:   'live prices in RON only',
     priceDisclaimer: 'Indicative prices, updated weekly — may differ slightly at the pump',
+    installApp:     'Install app',
+    installTitle:   'Install app',
+    installIntro:   'Add Fuel Calculator to your home screen for quick, offline access — it works like a native app.',
+    installDone:    'App installed.',
+    installIOS:     [
+      'Tap the Share button in Safari\'s toolbar (the square with an arrow).',
+      'Scroll down and tap "Add to Home Screen".',
+      'Tap "Add" in the top-right corner.',
+    ],
+    installAndroid: [
+      'Tap the ⋮ menu in your browser (top-right).',
+      'Tap "Install app" or "Add to Home screen".',
+      'Confirm with "Install".',
+    ],
+    installDesktop: [
+      'Click the install icon in the address bar (a screen with a down arrow).',
+      'Click "Install" in the dialog.',
+      'If you don\'t see it, open the browser menu and choose "Install Fuel Calculator".',
+    ],
     eroareNaN:      (f) => `"${f}" is not a valid number.`,
     eroareInterval: (f, a, b) => `"${f}" must be between ${a} and ${b}.`,
   },
@@ -108,6 +127,25 @@ const TRADUCERI = {
     priceLoading:   'se actualizează...',
     priceRonOnly:   'prețuri live doar în RON',
     priceDisclaimer: 'Prețuri orientative, actualizate săptămânal — pot diferi ușor față de pompă',
+    installApp:     'Instalează aplicația',
+    installTitle:   'Instalează aplicația',
+    installIntro:   'Adaugă Calculator Combustibil pe ecranul principal pentru acces rapid și offline — funcționează ca o aplicație nativă.',
+    installDone:    'Aplicație instalată.',
+    installIOS:     [
+      'Apasă butonul Share din bara Safari (pătratul cu o săgeată).',
+      'Derulează în jos și apasă „Add to Home Screen".',
+      'Apasă „Add" în colțul din dreapta sus.',
+    ],
+    installAndroid: [
+      'Apasă meniul ⋮ din browser (dreapta sus).',
+      'Apasă „Instalează aplicația" sau „Adaugă la ecranul principal".',
+      'Confirmă cu „Instalează".',
+    ],
+    installDesktop: [
+      'Apasă pictograma de instalare din bara de adrese (un ecran cu o săgeată în jos).',
+      'Apasă „Instalează" în fereastra apărută.',
+      'Dacă nu o vezi, deschide meniul browserului și alege „Instalează Calculator Combustibil".',
+    ],
     eroareNaN:      (f) => `Câmpul „${f}" nu este valid.`,
     eroareInterval: (f, a, b) => `„${f}" trebuie să fie între ${a} și ${b}.`,
   }
@@ -285,6 +323,83 @@ function applySyncCode() {
   if (db) {
     subscribeToProfiles(syncId);
   }
+}
+
+// ── Install (Add to Home Screen) ─────────────────────────────────────────────
+
+let deferredInstallPrompt = null;
+
+function isStandalone() {
+  return window.matchMedia('(display-mode: standalone)').matches
+      || window.navigator.standalone === true;
+}
+
+function detectPlatform() {
+  const ua = navigator.userAgent || '';
+  if (/iPad|iPhone|iPod/.test(ua) && !window.MSStream) return 'ios';
+  if (/Android/.test(ua)) return 'android';
+  return 'desktop';
+}
+
+function initInstall() {
+  const btn = document.getElementById('btn-install');
+  if (!btn) return;
+  // Already installed → no button needed.
+  if (isStandalone()) { btn.style.display = 'none'; return; }
+
+  // Show by default so iOS users (no beforeinstallprompt event) always get the guide.
+  btn.style.display = '';
+
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();           // keep our own button instead of the mini-infobar
+    deferredInstallPrompt = e;
+    btn.style.display = '';
+  });
+
+  window.addEventListener('appinstalled', () => {
+    deferredInstallPrompt = null;
+    btn.style.display = 'none';
+    closeInstallModal();
+    showToast(t().installDone);
+  });
+}
+
+async function handleInstallClick() {
+  // Native prompt available (Android / Chromium desktop) → use it directly.
+  if (deferredInstallPrompt) {
+    deferredInstallPrompt.prompt();
+    const { outcome } = await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+    if (outcome === 'accepted') {
+      document.getElementById('btn-install').style.display = 'none';
+    }
+    return;
+  }
+  // Otherwise (iOS Safari, or prompt not yet fired) → show manual guide.
+  openInstallModal();
+}
+
+function renderInstallSteps() {
+  const tr = t();
+  const platform = detectPlatform();
+  const steps = platform === 'ios'     ? tr.installIOS
+              : platform === 'android' ? tr.installAndroid
+              :                          tr.installDesktop;
+  document.getElementById('install-steps').innerHTML =
+    steps.map(s => `<li>${esc(s)}</li>`).join('');
+}
+
+function openInstallModal() {
+  renderInstallSteps();
+  document.getElementById('install-modal').style.display = '';
+}
+
+function closeInstallModal() {
+  document.getElementById('install-modal').style.display = 'none';
+}
+
+function onInstallOverlayClick(e) {
+  if (e.target === document.getElementById('install-modal')) closeInstallModal();
 }
 
 // ── Formatters ──────────────────────────────────────────────────────────────
@@ -499,11 +614,17 @@ function aplicaLimba() {
     'modal-sync-desc2':   tr.syncDesc2,
     'label-copy-sync':    tr.syncCopy,
     'label-apply-sync':   tr.syncApply,
+    'label-install':      tr.installApp,
+    'install-title':      tr.installTitle,
+    'install-intro':      tr.installIntro,
   };
   for (const [id, text] of Object.entries(ids)) {
     const el = document.getElementById(id);
     if (el) el.textContent = text;
   }
+  // Re-render install steps if the guide is open (language may have changed).
+  const im = document.getElementById('install-modal');
+  if (im && im.style.display !== 'none') renderInstallSteps();
   document.getElementById('btn-limba').textContent = limbaActiva === 'en' ? 'RO' : 'EN';
   document.documentElement.lang = limbaActiva;
   updateCurrencyLabels();
@@ -935,6 +1056,7 @@ function incarca() {
   initFirebase();
   updateFuelTypeButtons();
   initFuelPrices();
+  initInstall();
   recalculeaza();
 
   document.querySelectorAll('input[type=number]').forEach(inp => {
@@ -966,3 +1088,6 @@ window.copySyncCode       = copySyncCode;
 window.applySyncCode      = applySyncCode;
 window.selectFuelType     = selectFuelType;
 window.refreshFuelPrices  = refreshFuelPrices;
+window.handleInstallClick = handleInstallClick;
+window.closeInstallModal  = closeInstallModal;
+window.onInstallOverlayClick = onInstallOverlayClick;
