@@ -1,10 +1,14 @@
-const CACHE_NAME = 'combustibil-v10';
+const CACHE_NAME = 'combustibil-v11';
 const resurse = [
   '/fuel-calculator/',
   '/fuel-calculator/index.html',
   '/fuel-calculator/app.js',
   '/fuel-calculator/style.css',
   '/fuel-calculator/manifest.json',
+  '/fuel-calculator/favicon.svg',
+  '/fuel-calculator/favicon-32.png',
+  '/fuel-calculator/favicon-16.png',
+  '/fuel-calculator/apple-touch-icon.png',
   '/fuel-calculator/icon-nou-192.png',
   '/fuel-calculator/icon-nou-512.png'
 ];
