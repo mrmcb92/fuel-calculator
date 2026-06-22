@@ -205,8 +205,21 @@ function initFirebase() {
       firebase.initializeApp(FIREBASE_CONFIG);
     }
     db = firebase.firestore();
-    subscribeToProfiles(syncId);
     setSyncStatusBar('connecting');
+
+    // Anonymous auth — the Firestore rules require request.auth != null.
+    // We only start listening once an (anonymous) user session exists.
+    firebase.auth().onAuthStateChanged(user => {
+      if (user) {
+        subscribeToProfiles(syncId);
+      }
+    });
+    firebase.auth().signInAnonymously().catch(e => {
+      console.warn('Anonymous sign-in failed:', e);
+      profilesCache = localGetProfiles();
+      renderProfiles();
+      setSyncStatusBar('offline');
+    });
   } catch (e) {
     console.warn('Firebase init failed:', e);
     profilesCache = localGetProfiles();
