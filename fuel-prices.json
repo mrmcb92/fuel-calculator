@@ -1,11 +1,11 @@
 {
-  "updated": "2026-06-22T10:33:43.000Z",
+  "updated": "2026-06-23T08:25:19.000Z",
   "source": "peco-online.ro",
   "currency": "RON",
   "prices": {
-    "B95": 8.45,
-    "B98": 9.1,
-    "Diesel": 9.02,
-    "GPL": 4.49
+    "B95": 8.51,
+    "B98": 9.16,
+    "Diesel": 9.06,
+    "GPL": 4.52
   }
 }
