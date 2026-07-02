@@ -3,8 +3,8 @@
   "short_name": "Fuel Calc",
   "start_url": "/fuel-calculator/",
   "display": "standalone",
-  "background_color": "#09090f",
-  "theme_color": "#09090f",
+  "background_color": "#0a141e",
+  "theme_color": "#0a141e",
   "icons": [
     {
       "src": "icon-nou-192.png",

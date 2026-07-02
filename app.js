@@ -415,6 +415,28 @@ function onInstallOverlayClick(e) {
   if (e.target === document.getElementById('install-modal')) closeInstallModal();
 }
 
+// ── Theme (light/dark) ────────────────────────────────────────────────────────
+// Initial theme is applied by an inline <head> script before first paint;
+// here we only handle toggling and keeping the browser UI color in sync.
+
+const THEME_COLORS = { dark: '#0a141e', light: '#f5f5f5' };
+
+function currentTheme() {
+  return document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+}
+
+function updateThemeColorMeta() {
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', THEME_COLORS[currentTheme()]);
+}
+
+function toggleTheme() {
+  const next = currentTheme() === 'light' ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('comb_theme', next);
+  updateThemeColorMeta();
+}
+
 // ── Formatters ──────────────────────────────────────────────────────────────
 
 const fmt  = new Intl.NumberFormat('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -1070,6 +1092,7 @@ function incarca() {
   updateFuelTypeButtons();
   initFuelPrices();
   initInstall();
+  updateThemeColorMeta();
   recalculeaza();
 
   document.querySelectorAll('input[type=number]').forEach(inp => {
@@ -1104,3 +1127,4 @@ window.refreshFuelPrices  = refreshFuelPrices;
 window.handleInstallClick = handleInstallClick;
 window.closeInstallModal  = closeInstallModal;
 window.onInstallOverlayClick = onInstallOverlayClick;
+window.toggleTheme        = toggleTheme;

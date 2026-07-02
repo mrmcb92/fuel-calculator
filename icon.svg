@@ -1,28 +1,28 @@
 <svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <!-- dark base with depth -->
+    <!-- dark navy base with depth -->
     <radialGradient id="bg" cx="50%" cy="22%" r="85%">
-      <stop offset="0%" stop-color="#16161f"/>
-      <stop offset="55%" stop-color="#0d0d14"/>
-      <stop offset="100%" stop-color="#08080d"/>
+      <stop offset="0%" stop-color="#142839"/>
+      <stop offset="55%" stop-color="#0e1c29"/>
+      <stop offset="100%" stop-color="#081019"/>
     </radialGradient>
-    <!-- lime glow from top -->
+    <!-- azure glow from top -->
     <radialGradient id="glow" cx="50%" cy="8%" r="70%">
-      <stop offset="0%" stop-color="#c8ff57" stop-opacity="0.22"/>
-      <stop offset="60%" stop-color="#c8ff57" stop-opacity="0"/>
+      <stop offset="0%" stop-color="#0099ff" stop-opacity="0.25"/>
+      <stop offset="60%" stop-color="#0099ff" stop-opacity="0"/>
     </radialGradient>
     <!-- droplet fill -->
     <linearGradient id="drop" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#e4ff9c"/>
-      <stop offset="45%" stop-color="#c8ff57"/>
-      <stop offset="100%" stop-color="#a4e62f"/>
+      <stop offset="0%" stop-color="#6ec6ff"/>
+      <stop offset="45%" stop-color="#0099ff"/>
+      <stop offset="100%" stop-color="#0072cc"/>
     </linearGradient>
     <linearGradient id="sheen" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0%" stop-color="#ffffff" stop-opacity="0.55"/>
       <stop offset="40%" stop-color="#ffffff" stop-opacity="0"/>
     </linearGradient>
     <filter id="ds" x="-30%" y="-30%" width="160%" height="160%">
-      <feDropShadow dx="0" dy="10" stdDeviation="18" flood-color="#c8ff57" flood-opacity="0.30"/>
+      <feDropShadow dx="0" dy="10" stdDeviation="18" flood-color="#0099ff" flood-opacity="0.30"/>
     </filter>
   </defs>
 
@@ -46,7 +46,7 @@
   </g>
 
   <!-- speedometer gauge cut into the droplet, dark -->
-  <g stroke="#0a0a10" stroke-linecap="round" fill="none">
+  <g stroke="#081019" stroke-linecap="round" fill="none">
     <!-- gauge arc (semicircle above the pivot) -->
     <path d="M180 372 A 78 78 0 0 1 332 372" stroke-width="13"/>
     <!-- end + mid ticks, radial -->
@@ -57,7 +57,7 @@
     </g>
   </g>
   <!-- needle pointing toward full -->
-  <line x1="256" y1="372" x2="314" y2="330" stroke="#0a0a10" stroke-width="15" stroke-linecap="round"/>
-  <circle cx="256" cy="372" r="17" fill="#0a0a10"/>
+  <line x1="256" y1="372" x2="314" y2="330" stroke="#081019" stroke-width="15" stroke-linecap="round"/>
+  <circle cx="256" cy="372" r="17" fill="#081019"/>
   <circle cx="256" cy="372" r="7" fill="url(#drop)"/>
 </svg>

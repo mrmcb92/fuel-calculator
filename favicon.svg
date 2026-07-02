@@ -1,14 +1,14 @@
 <svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="drop" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#e4ff9c"/>
-      <stop offset="45%" stop-color="#c8ff57"/>
-      <stop offset="100%" stop-color="#a4e62f"/>
+      <stop offset="0%" stop-color="#6ec6ff"/>
+      <stop offset="45%" stop-color="#0099ff"/>
+      <stop offset="100%" stop-color="#0072cc"/>
     </linearGradient>
   </defs>
 
   <!-- rounded dark tile so it reads on light browser chrome too -->
-  <rect width="64" height="64" rx="14" fill="#0d0d14"/>
+  <rect width="64" height="64" rx="14" fill="#0e1c29"/>
 
   <!-- droplet, enlarged to fill the tile for favicon legibility -->
   <path d="M32 7
@@ -18,9 +18,9 @@
         fill="url(#drop)"/>
 
   <!-- gauge -->
-  <g stroke="#0d0d14" stroke-linecap="round" fill="none">
+  <g stroke="#0e1c29" stroke-linecap="round" fill="none">
     <path d="M21 47 A 13 13 0 0 1 43 47" stroke-width="3"/>
   </g>
-  <line x1="32" y1="47" x2="42" y2="40" stroke="#0d0d14" stroke-width="3" stroke-linecap="round"/>
-  <circle cx="32" cy="47" r="3.4" fill="#0d0d14"/>
+  <line x1="32" y1="47" x2="42" y2="40" stroke="#0e1c29" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="32" cy="47" r="3.4" fill="#0e1c29"/>
 </svg>
