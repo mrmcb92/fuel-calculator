@@ -1,18 +1,18 @@
 {
-  "updated": "2026-09-14T10:14:00.000Z",
+  "updated": "2026-09-15T09:42:55.000Z",
   "source": "pretcarburant.ro + peco-online.ro",
   "currency": "RON",
   "prices": {
     "B95": 9.95,
     "B98": 10.37,
-    "Diesel": 10.54,
+    "Diesel": 10.55,
     "DieselPlus": 10.51,
     "GPL": 4.69
   },
   "nationalAverages": {
     "B95": 9.95,
     "B98": 10.37,
-    "Diesel": 10.54,
+    "Diesel": 10.55,
     "DieselPlus": 10.51,
     "GPL": 4.69
   },
@@ -27,14 +27,14 @@
     "Arad": {
       "B95": 9.91,
       "B98": 10.39,
-      "Diesel": 10.44,
+      "Diesel": 10.46,
       "DieselPlus": 10.46,
       "GPL": 4.69
     },
     "Timisoara": {
       "B95": 9.91,
       "B98": 10.39,
-      "Diesel": 10.44,
+      "Diesel": 10.46,
       "DieselPlus": 10.52,
       "GPL": 4.69
     },
@@ -55,14 +55,14 @@
     "Oradea": {
       "B95": 9.91,
       "B98": 10.39,
-      "Diesel": 10.44,
+      "Diesel": 10.46,
       "DieselPlus": 10.52,
       "GPL": 4.69
     },
     "Cluj Napoca": {
       "B95": 9.91,
       "B98": 10.39,
-      "Diesel": 10.44,
+      "Diesel": 10.46,
       "DieselPlus": 10.52,
       "GPL": 4.69
     },
@@ -125,7 +125,7 @@
     "Sibiu": {
       "B95": 9.91,
       "B98": 10.39,
-      "Diesel": 10.44,
+      "Diesel": 10.46,
       "DieselPlus": 10.52,
       "GPL": 4.68
     },
@@ -164,7 +164,7 @@
     "Rompetrol": 9.96,
     "MOL": 9.97,
     "Lukoil": 9.98,
-    "Socar": 9.92,
-    "Gazprom": 9.97
+    "Socar": 9.93,
+    "Gazprom": 10.07
   }
 }
