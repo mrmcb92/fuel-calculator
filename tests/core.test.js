@@ -6,7 +6,17 @@ const path = require('path');
 const assert = require('assert');
 require(path.join(__dirname, '..', 'core.js'));
 
-const { parseNum, toL100, computeCore, normalizeFuelType, mergeFuelPrices } = global.FuelCore;
+const {
+  parseNum,
+  toL100,
+  computeCore,
+  normalizeFuelType,
+  mergeFuelPrices,
+  computeEstimatedConsumption,
+  VEHICLE_DATABASE,
+  TRAFFIC_FACTORS,
+  AC_ADDITIONS
+} = global.FuelCore;
 
 let passed = 0;
 const failures = [];
@@ -147,6 +157,74 @@ test('fuel-prices.json: valid structure and realistic Romanian prices', () => {
   assert.ok(data.prices.GPL < data.prices.B95, 'GPL price should be less than petrol');
   assert.ok(data.cities && Object.keys(data.cities).length >= 10, 'expected at least 10 city prices');
   assert.ok(data.cities.Bucuresti, 'Bucuresti city prices should be present');
+});
+
+// ── Vehicle Consumption Estimator ──────────────────────────────────────────
+
+test('computeEstimatedConsumption: returns null on invalid or zero base', () => {
+  assert.strictEqual(computeEstimatedConsumption(0), null);
+  assert.strictEqual(computeEstimatedConsumption(-5), null);
+  assert.strictEqual(computeEstimatedConsumption(NaN), null);
+  assert.strictEqual(computeEstimatedConsumption(null), null);
+});
+
+test('computeEstimatedConsumption: default options return base consumption', () => {
+  const r = computeEstimatedConsumption(6.0, {});
+  assert.strictEqual(r.baseL100, 6.0);
+  assert.strictEqual(r.totalL100, 6.0);
+  assert.strictEqual(r.diffFromBase, 0);
+  assert.strictEqual(r.percentDiff, 0);
+  assert.strictEqual(r.acImpact, 0);
+  assert.strictEqual(r.trafficImpact, 0);
+});
+
+test('computeEstimatedConsumption: air conditioning impact', () => {
+  const ecoAC = computeEstimatedConsumption(5.0, { ac: 'eco' });
+  assert.strictEqual(ecoAC.totalL100, 5.5); // 5.0 + 0.5
+  assert.strictEqual(ecoAC.acImpact, 0.5);
+
+  const maxAC = computeEstimatedConsumption(5.0, { ac: 'max' });
+  assert.strictEqual(maxAC.totalL100, 6.1); // 5.0 + 1.1
+  assert.strictEqual(maxAC.acImpact, 1.1);
+});
+
+test('computeEstimatedConsumption: traffic conditions impact', () => {
+  const openRoad = computeEstimatedConsumption(6.0, { traffic: 'extraurban' });
+  assert.strictEqual(openRoad.totalL100, 5.1); // 6.0 * 0.85
+
+  const highway = computeEstimatedConsumption(6.0, { traffic: 'highway' });
+  assert.strictEqual(highway.totalL100, 6.6); // 6.0 * 1.10
+
+  const heavyCity = computeEstimatedConsumption(6.0, { traffic: 'heavy' });
+  assert.strictEqual(heavyCity.totalL100, 8.4); // 6.0 * 1.40
+
+  const trafficJam = computeEstimatedConsumption(6.0, { traffic: 'trafficjam' });
+  assert.strictEqual(trafficJam.totalL100, 9.9); // 6.0 * 1.65
+});
+
+test('computeEstimatedConsumption: combined conditions (heavy traffic + AC + winter)', () => {
+  // Base 6.0, heavy traffic (+40% = 8.4), winter (+12% = 9.408), max AC (+1.1 = 10.51)
+  const r = computeEstimatedConsumption(6.0, {
+    traffic: 'heavy',
+    season: 'winter',
+    ac: 'max'
+  });
+  assert.strictEqual(r.totalL100, 10.51);
+  assert.strictEqual(r.percentDiff, 75);
+  assert.ok(r.diffFromBase > 4.5);
+});
+
+test('VEHICLE_DATABASE: valid presets and realistic base consumptions', () => {
+  assert.ok(Array.isArray(VEHICLE_DATABASE), 'VEHICLE_DATABASE must be an array');
+  assert.ok(VEHICLE_DATABASE.length >= 30, 'expected at least 30 vehicles/categories');
+  const validFuels = ['B95', 'B98', 'Diesel', 'DieselPlus', 'GPL'];
+  VEHICLE_DATABASE.forEach(v => {
+    assert.ok(v.id && typeof v.id === 'string', 'vehicle missing id');
+    assert.ok(v.brand && typeof v.brand === 'string', 'vehicle missing brand');
+    assert.ok(v.model && typeof v.model === 'string', 'vehicle missing model');
+    assert.ok(typeof v.baseL100 === 'number' && v.baseL100 >= 3.0 && v.baseL100 <= 15.0, `base consumption ${v.baseL100} out of bounds for ${v.model}`);
+    assert.ok(validFuels.includes(v.fuel), `invalid fuel ${v.fuel} for ${v.model}`);
+  });
 });
 
 // ── Report ─────────────────────────────────────────────────────────────────

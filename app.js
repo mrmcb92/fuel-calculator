@@ -74,6 +74,24 @@ const TRADUCERI = {
       'Click "Install" in the dialog.',
       'If you don\'t see it, open the browser menu and choose "Install Fuel Calculator".',
     ],
+    tabEstimator:   'Estimator',
+    quickEstimate:  'Estimate',
+    estimatorSub:   'Select a vehicle from the list or enter a base consumption, then adjust road conditions to get the real average consumption.',
+    estVehicle:     'Vehicle',
+    estVehicleHint: 'Factory WLTP',
+    estCustomOpt:   '— Manual input / Current profile —',
+    estBase:        'Base consumption (WLTP / mixed)',
+    estBaseHint:    'No A/C or gridlock',
+    estTraffic:     'Traffic conditions',
+    estTrafficHint: 'Speed & congestion',
+    estAc:          'Air conditioning (A/C)',
+    estAcHint:      'Compressor & cooling',
+    estStyle:       'Driving style',
+    estSeason:      'Season & Tires',
+    estResultTitle: 'Estimated Avg Consumption',
+    estApplyCalc:   'Apply to Calculator',
+    estSaveProf:    '+ Save Profile',
+    estAppliedToast:'Estimated consumption applied to calculator!',
     eroareNaN:      (f) => `"${f}" is not a valid number.`,
     eroareInterval: (f, a, b) => `"${f}" must be between ${a} and ${b}.`,
   },
@@ -82,6 +100,7 @@ const TRADUCERI = {
     subtitlu:       'Estimează costul înainte sau după drum',
     tabCost:        'Cost',
     tabRange:       'Autonomie',
+    tabEstimator:   'Consum',
     tabHistory:     'Istoric',
     profileDefault: '— Vehicul —',
     distanta:       'Distanță',
@@ -150,6 +169,23 @@ const TRADUCERI = {
       'Apasă „Instalează" în fereastra apărută.',
       'Dacă nu o vezi, deschide meniul browserului și alege „Instalează Calculator Combustibil".',
     ],
+    quickEstimate:  'Estimează',
+    estimatorSub:   'Alege autovehiculul din listă sau introdu consumul de bază, apoi ajustează traficul și clima pentru a calcula consumul mediu real.',
+    estVehicle:     'Autovehicul',
+    estVehicleHint: 'WLTP fabrică',
+    estCustomOpt:   '— Introducere manuală / Profil curent —',
+    estBase:        'Consum de bază (WLTP / mixt)',
+    estBaseHint:    'Fără A/C sau aglomerație',
+    estTraffic:     'Condiții de trafic',
+    estTrafficHint: 'Viteză & aglomerație',
+    estAc:          'Aer condiționat (Climă)',
+    estAcHint:      'Compresor & răcire',
+    estStyle:       'Stil condus',
+    estSeason:      'Sezon & Roți',
+    estResultTitle: 'Consum Mediu Estimat',
+    estApplyCalc:   'Aplică în Calculator',
+    estSaveProf:    '+ Salvează Profil',
+    estAppliedToast:'Consumul estimat a fost aplicat în calculator!',
     eroareNaN:      (f) => `Câmpul „${f}" nu este valid.`,
     eroareInterval: (f, a, b) => `„${f}" trebuie să fie între ${a} și ${b}.`,
   }
@@ -788,7 +824,25 @@ function aplicaLimba() {
     'app-subtitlu':       tr.subtitlu,
     'tab-cost-label':     tr.tabCost,
     'tab-range-label':    tr.tabRange,
+    'tab-estimator-label':tr.tabEstimator,
     'tab-history-label':  tr.tabHistory,
+    'label-quick-estimate': tr.quickEstimate,
+    'label-quick-estimate-r': tr.quickEstimate,
+    'estimator-sub-text': tr.estimatorSub,
+    'label-est-vehicle':  tr.estVehicle,
+    'est-vehicle-hint':   tr.estVehicleHint,
+    'opt-vehicle-custom': tr.estCustomOpt,
+    'label-est-base':     tr.estBase,
+    'est-base-hint':      tr.estBaseHint,
+    'label-est-traffic':  tr.estTraffic,
+    'est-traffic-hint':   tr.estTrafficHint,
+    'label-est-ac':       tr.estAc,
+    'est-ac-hint':        tr.estAcHint,
+    'label-est-style':    tr.estStyle,
+    'label-est-season':   tr.estSeason,
+    'label-est-result-title': tr.estResultTitle,
+    'label-btn-apply-calc': tr.estApplyCalc,
+    'label-btn-save-prof': tr.estSaveProf,
     'profile-default-opt':tr.profileDefault,
     'label-distanta':     tr.distanta,
     'label-tur-retur':    tr.turRetur,
@@ -879,9 +933,11 @@ function setConsumUnit(unit) {
 // ── Tabs ──────────────────────────────────────────────────────────────────────
 
 function setTab(tab) {
-  ['cost', 'range', 'history'].forEach(id => {
-    document.getElementById('tab-' + id).classList.toggle('active', id === tab);
-    document.getElementById('panel-' + id).style.display = id === tab ? '' : 'none';
+  ['cost', 'range', 'estimator', 'history'].forEach(id => {
+    const tabBtn = document.getElementById('tab-' + id);
+    const panel  = document.getElementById('panel-' + id);
+    if (tabBtn) tabBtn.classList.toggle('active', id === tab);
+    if (panel)  panel.style.display = id === tab ? '' : 'none';
   });
   if (tab === 'range') {
     const c  = document.getElementById('consum').value;
@@ -892,6 +948,10 @@ function setTab(tab) {
     }
     if (p) document.getElementById('pret-r').value = p;
     calcRange();
+  }
+  if (tab === 'estimator') {
+    initEstimatorTab();
+    recalculeazaEstimator();
   }
   if (tab === 'history') renderHistory();
 }
@@ -1217,6 +1277,284 @@ function renderHistory() {
   }).join('');
 }
 
+// ── Vehicle Consumption Estimator ──────────────────────────────────────────
+
+let estState = {
+  selectedVehicleId: 'custom',
+  targetFuel: null,
+  traffic: 'mixed',
+  ac: 'off',
+  style: 'normal',
+  season: 'mild',
+  lastEstimatedL100: null,
+  previousTab: 'cost'
+};
+
+function initEstimatorTab() {
+  populateEstVehicleSelect();
+  const baseInput = document.getElementById('est-base-consum');
+  if (baseInput && (!baseInput.value || parseNum(baseInput.value) <= 0)) {
+    const costConsum = parseNum(document.getElementById('consum').value);
+    if (!isNaN(costConsum) && costConsum > 0) {
+      baseInput.value = String(toL100(costConsum, consumUnit)).replace(',', '.');
+    } else {
+      baseInput.value = '6.0';
+    }
+  }
+}
+
+function populateEstVehicleSelect() {
+  const sel = document.getElementById('est-vehicle-select');
+  if (!sel) return;
+  const tr = t();
+  const currentVal = sel.value || 'custom';
+
+  sel.innerHTML = '';
+
+  const optCustom = document.createElement('option');
+  optCustom.value = 'custom';
+  optCustom.id = 'opt-vehicle-custom';
+  optCustom.textContent = tr.estCustomOpt;
+  sel.appendChild(optCustom);
+
+  const profiles = getProfiles();
+  if (profiles.length > 0) {
+    const grpProf = document.createElement('optgroup');
+    grpProf.label = limbaActiva === 'ro' ? '⭐ Profilurile mele' : '⭐ My Saved Profiles';
+    profiles.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = 'prof_' + p.id;
+      const base = toL100(p.consum, p.unit);
+      opt.textContent = `${p.name} (${base.toFixed(1)} L/100)`;
+      grpProf.appendChild(opt);
+    });
+    sel.appendChild(grpProf);
+  }
+
+  if (typeof VEHICLE_DATABASE !== 'undefined' && Array.isArray(VEHICLE_DATABASE)) {
+    const brands = {};
+    VEHICLE_DATABASE.forEach(v => {
+      if (!brands[v.brand]) brands[v.brand] = [];
+      brands[v.brand].push(v);
+    });
+
+    Object.keys(brands).forEach(brand => {
+      const grp = document.createElement('optgroup');
+      grp.label = brand;
+      brands[brand].forEach(v => {
+        const opt = document.createElement('option');
+        opt.value = v.id;
+        opt.textContent = `${v.model} · ${v.engine} (${v.baseL100} L/100)`;
+        grp.appendChild(opt);
+      });
+      sel.appendChild(grp);
+    });
+  }
+
+  sel.value = currentVal;
+}
+
+function onSelectEstVehicle() {
+  const sel = document.getElementById('est-vehicle-select');
+  if (!sel) return;
+  const val = sel.value;
+  estState.selectedVehicleId = val;
+
+  if (val === 'custom') {
+    estState.targetFuel = null;
+    recalculeazaEstimator();
+    return;
+  }
+
+  if (val.startsWith('prof_')) {
+    const pid = val.replace('prof_', '');
+    const p = getProfiles().find(x => x.id === pid);
+    if (p) {
+      const base = toL100(p.consum, p.unit);
+      document.getElementById('est-base-consum').value = base.toFixed(1);
+    }
+    recalculeazaEstimator();
+    return;
+  }
+
+  if (typeof VEHICLE_DATABASE !== 'undefined') {
+    const v = VEHICLE_DATABASE.find(x => x.id === val);
+    if (v) {
+      document.getElementById('est-base-consum').value = v.baseL100.toFixed(1);
+      estState.targetFuel = v.fuel;
+    }
+  }
+
+  recalculeazaEstimator();
+}
+
+function setEstTraffic(traffic) {
+  estState.traffic = traffic;
+  document.querySelectorAll('#est-traffic-grid .crit-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.traffic === traffic);
+  });
+  recalculeazaEstimator();
+}
+
+function setEstAc(ac) {
+  estState.ac = ac;
+  document.querySelectorAll('#est-ac-row .crit-btn-pill').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.ac === ac);
+  });
+  recalculeazaEstimator();
+}
+
+function recalculeazaEstimator() {
+  const baseInput = document.getElementById('est-base-consum');
+  if (!baseInput) return;
+  const base = parseNum(baseInput.value);
+  const card = document.getElementById('est-result-card');
+  const styleSel = document.getElementById('est-style-select');
+  const seasonSel = document.getElementById('est-season-select');
+
+  if (isNaN(base) || base <= 0) {
+    if (card) card.style.display = 'none';
+    return;
+  }
+
+  const style = styleSel ? styleSel.value : 'normal';
+  const season = seasonSel ? seasonSel.value : 'mild';
+  estState.style = style;
+  estState.season = season;
+
+  const res = FuelCore.computeEstimatedConsumption(base, {
+    traffic: estState.traffic,
+    ac: estState.ac,
+    style: estState.style,
+    season: estState.season
+  });
+
+  if (!res) {
+    if (card) card.style.display = 'none';
+    return;
+  }
+
+  estState.lastEstimatedL100 = res.totalL100;
+  if (card) card.style.display = '';
+
+  const bigValEl = document.getElementById('est-value-big');
+  const diffBadgeEl = document.getElementById('est-diff-badge');
+  const chipsEl = document.getElementById('est-factors-breakdown');
+
+  if (bigValEl) bigValEl.textContent = res.totalL100.toFixed(1);
+
+  if (diffBadgeEl) {
+    if (res.diffFromBase > 0) {
+      diffBadgeEl.textContent = `+${res.diffFromBase.toFixed(1)} L/100 (+${res.percentDiff}%)`;
+      diffBadgeEl.className = 'est-diff-badge higher';
+    } else if (res.diffFromBase < 0) {
+      diffBadgeEl.textContent = `${res.diffFromBase.toFixed(1)} L/100 (${res.percentDiff}%)`;
+      diffBadgeEl.className = 'est-diff-badge lower';
+    } else {
+      diffBadgeEl.textContent = limbaActiva === 'ro' ? '0.0 (Bază WLTP)' : '0.0 (WLTP base)';
+      diffBadgeEl.className = 'est-diff-badge same';
+    }
+  }
+
+  if (chipsEl) {
+    const isRo = limbaActiva === 'ro';
+    const chips = [];
+
+    if (estState.ac === 'off') {
+      chips.push(`<span class="factor-chip">❄️ Climă: <strong>${isRo ? 'Oprită' : 'Off'}</strong></span>`);
+    } else if (estState.ac === 'eco') {
+      chips.push(`<span class="factor-chip has-impact">❄️ Climă: <strong>+0.5 L/100</strong></span>`);
+    } else if (estState.ac === 'max') {
+      chips.push(`<span class="factor-chip has-impact">❄️ Climă: <strong>+1.1 L/100</strong></span>`);
+    }
+
+    const trafficLabels = {
+      extraurban: isRo ? 'Extraurban (-15%)' : 'Open road (-15%)',
+      mixed:      isRo ? 'Mixt (0%)' : 'Mixed (0%)',
+      highway:    isRo ? 'Autostradă (+10%)' : 'Highway (+10%)',
+      urban:      isRo ? 'Urban (+20%)' : 'City (+20%)',
+      heavy:      isRo ? 'Aglomerație (+40%)' : 'Heavy traffic (+40%)',
+      trafficjam: isRo ? 'Blocaj (+65%)' : 'Traffic jam (+65%)',
+    };
+    const hasTrafImpact = estState.traffic !== 'mixed';
+    chips.push(`<span class="factor-chip ${hasTrafImpact ? 'has-impact' : ''}">🚦 Trafic: <strong>${trafficLabels[estState.traffic] || estState.traffic}</strong></span>`);
+
+    if (estState.style !== 'normal') {
+      const sLabel = estState.style === 'eco' ? (isRo ? 'Eco (-8%)' : 'Eco (-8%)') : (isRo ? 'Sport (+18%)' : 'Sport (+18%)');
+      chips.push(`<span class="factor-chip has-impact">🏎️ Stil: <strong>${sLabel}</strong></span>`);
+    }
+
+    if (estState.season !== 'mild') {
+      chips.push(`<span class="factor-chip has-impact">❄️ Sezon: <strong>${isRo ? 'Iarnă (+12%)' : 'Winter (+12%)'}</strong></span>`);
+    }
+
+    chipsEl.innerHTML = chips.join('');
+  }
+}
+
+function deschideEstimator() {
+  estState.previousTab = document.getElementById('panel-range').style.display !== 'none' ? 'range' : 'cost';
+  setTab('estimator');
+}
+
+function aplicaConsumInCalculator() {
+  if (estState.lastEstimatedL100 === null) return;
+  const tr = t();
+
+  let finalVal = estState.lastEstimatedL100;
+  if (consumUnit === 'kmL') {
+    finalVal = Math.round((100 / estState.lastEstimatedL100) * 10) / 10;
+  } else if (consumUnit === 'mpg') {
+    finalVal = Math.round((235.214 / estState.lastEstimatedL100) * 10) / 10;
+  }
+
+  const strVal = String(finalVal).replace(',', '.');
+  document.getElementById('consum').value = strVal;
+  document.getElementById('consum-r').value = String(estState.lastEstimatedL100.toFixed(1)).replace(',', '.');
+
+  if (estState.targetFuel) {
+    selectFuelType(estState.targetFuel);
+  }
+
+  const targetTab = estState.previousTab || 'cost';
+  setTab(targetTab);
+
+  if (targetTab === 'cost') recalculeaza();
+  else if (targetTab === 'range') calcRange();
+
+  showToast(tr.estAppliedToast);
+}
+
+function salveazaCaProfilNou() {
+  if (estState.lastEstimatedL100 === null) return;
+  const tr = t();
+
+  let defaultName = '';
+  const sel = document.getElementById('est-vehicle-select');
+  if (sel && sel.value !== 'custom' && !sel.value.startsWith('prof_') && typeof VEHICLE_DATABASE !== 'undefined') {
+    const v = VEHICLE_DATABASE.find(x => x.id === sel.value);
+    if (v) {
+      const trafShort = estState.traffic === 'heavy' ? 'Urban Aglomerat' : (estState.traffic === 'urban' ? 'Urban' : 'Drum');
+      const acShort = estState.ac !== 'off' ? ' + AC' : '';
+      defaultName = `${v.brand} ${v.model.split(' ')[0]} (${trafShort}${acShort})`;
+    }
+  }
+
+  const name = prompt(tr.profileName, defaultName);
+  if (!name || !name.trim()) return;
+
+  const profiles = getProfiles();
+  profiles.push({
+    id: Date.now().toString(),
+    name: name.trim(),
+    consum: estState.lastEstimatedL100,
+    unit: 'L100'
+  });
+  saveProfiles(profiles);
+  renderProfiles();
+  showToast(tr.profileSaved);
+}
+
 // ── Vehicle profiles ──────────────────────────────────────────────────────────
 
 function renderProfiles() {
@@ -1236,6 +1574,8 @@ function renderProfiles() {
     sel.appendChild(option);
   });
   if (current) sel.value = current;
+
+  populateEstVehicleSelect();
 }
 
 function saveProfile() {
@@ -1442,6 +1782,7 @@ function incarca() {
   initInstall();
   updateThemeColorMeta();
   initMobileAppBehavior();
+  initEstimatorTab();
   recalculeaza();
 
   // Enter submits from any input: cost inputs run the cost calc, range inputs
@@ -1451,6 +1792,8 @@ function incarca() {
       if (e.key !== 'Enter') return;
       if (inp.closest('#panel-range')) {
         calcRange();
+      } else if (inp.closest('#panel-estimator')) {
+        recalculeazaEstimator();
       } else {
         calculeaza();
       }
@@ -1487,3 +1830,10 @@ window.handleInstallClick = handleInstallClick;
 window.closeInstallModal  = closeInstallModal;
 window.onInstallOverlayClick = onInstallOverlayClick;
 window.toggleTheme        = toggleTheme;
+window.deschideEstimator  = deschideEstimator;
+window.onSelectEstVehicle = onSelectEstVehicle;
+window.setEstTraffic     = setEstTraffic;
+window.setEstAc          = setEstAc;
+window.recalculeazaEstimator = recalculeazaEstimator;
+window.aplicaConsumInCalculator = aplicaConsumInCalculator;
+window.salveazaCaProfilNou     = salveazaCaProfilNou;

@@ -74,6 +74,7 @@
     <div class="tabs">
       <button class="tab active" id="tab-cost" onclick="setTab('cost')"><span id="tab-cost-label">Cost</span></button>
       <button class="tab" id="tab-range" onclick="setTab('range')"><span id="tab-range-label">Range</span></button>
+      <button class="tab" id="tab-estimator" onclick="setTab('estimator')"><span id="tab-estimator-label">Consum</span></button>
       <button class="tab" id="tab-history" onclick="setTab('history')"><span id="tab-history-label">History</span></button>
     </div>
 
@@ -118,7 +119,12 @@
 
         <div class="field">
           <div class="field-header">
-            <label id="label-consum" for="consum">Avg. consumption</label>
+            <div class="label-with-action">
+              <label id="label-consum" for="consum">Avg. consumption</label>
+              <button type="button" class="btn-subtle-action" id="btn-quick-estimate" onclick="deschideEstimator()" title="Estimează consumul în funcție de mașină, climă și trafic">
+                ⚡ <span id="label-quick-estimate">Estimează</span>
+              </button>
+            </div>
             <div class="seg-ctrl" id="consum-unit-toggle">
               <button class="seg active" data-unit="L100" onclick="setConsumUnit('L100')">L/100</button>
               <button class="seg" data-unit="kmL" onclick="setConsumUnit('kmL')">km/L</button>
@@ -213,7 +219,14 @@
         </div>
 
         <div class="field">
-          <label id="label-consum-r" for="consum-r">Avg. consumption</label>
+          <div class="field-header">
+            <div class="label-with-action">
+              <label id="label-consum-r" for="consum-r">Avg. consumption</label>
+              <button type="button" class="btn-subtle-action" id="btn-quick-estimate-r" onclick="deschideEstimator()" title="Estimează consumul">
+                ⚡ <span id="label-quick-estimate-r">Estimează</span>
+              </button>
+            </div>
+          </div>
           <div class="input-wrap">
             <input type="number" id="consum-r" inputmode="decimal" placeholder="6.5" step="any" min="0.1" max="999" oninput="calcRange()">
             <span class="unit">L/100</span>
@@ -257,6 +270,149 @@
         <div class="divider"></div>
         <div id="range-rezultat"></div>
       </div>
+    </div>
+
+    <!-- ── TAB: ESTIMATOR ── -->
+    <div id="panel-estimator" class="panel" style="display:none">
+      <div class="estimator-header">
+        <p class="estimator-sub" id="estimator-sub-text">
+          Alege autovehiculul din listă sau introdu consumul de bază, apoi ajustează traficul și clima pentru a calcula consumul mediu real.
+        </p>
+      </div>
+
+      <div class="fields">
+
+        <!-- Selectie Autovehicul -->
+        <div class="field">
+          <div class="field-header">
+            <label id="label-est-vehicle" for="est-vehicle-select">Autovehicul</label>
+            <span class="field-hint" id="est-vehicle-hint">WLTP fabrică</span>
+          </div>
+          <select id="est-vehicle-select" class="est-select" onchange="onSelectEstVehicle()">
+            <option value="custom" id="opt-vehicle-custom">— Introducere manuală / Profil curent —</option>
+          </select>
+        </div>
+
+        <!-- Consum de baza -->
+        <div class="field">
+          <div class="field-header">
+            <label id="label-est-base" for="est-base-consum">Consum de bază (WLTP / mixt)</label>
+            <span class="field-hint" id="est-base-hint">Fără A/C sau aglomerație</span>
+          </div>
+          <div class="input-wrap">
+            <input type="number" id="est-base-consum" inputmode="decimal" placeholder="6.0" step="any" min="1" max="50" oninput="recalculeazaEstimator()">
+            <span class="unit">L/100</span>
+          </div>
+        </div>
+
+        <!-- Conditii de Trafic -->
+        <div class="field">
+          <div class="field-header">
+            <label id="label-est-traffic">Condiții de trafic</label>
+            <span class="field-hint" id="est-traffic-hint">Viteză & aglomerație</span>
+          </div>
+          <div class="traffic-grid" id="est-traffic-grid">
+            <button type="button" class="crit-btn" data-traffic="extraurban" onclick="setEstTraffic('extraurban')">
+              <span class="crit-title" id="traffic-title-extra">Extraurban fluent</span>
+              <span class="crit-desc" id="traffic-desc-extra">Drum național, 70-90 km/h (-15%)</span>
+            </button>
+            <button type="button" class="crit-btn active" data-traffic="mixed" onclick="setEstTraffic('mixed')">
+              <span class="crit-title" id="traffic-title-mixed">Mixt / Standard</span>
+              <span class="crit-desc" id="traffic-desc-mixed">WLTP referință (0%)</span>
+            </button>
+            <button type="button" class="crit-btn" data-traffic="highway" onclick="setEstTraffic('highway')">
+              <span class="crit-title" id="traffic-title-highway">Autostradă</span>
+              <span class="crit-desc" id="traffic-desc-highway">Viteză 125-135 km/h (+10%)</span>
+            </button>
+            <button type="button" class="crit-btn" data-traffic="urban" onclick="setEstTraffic('urban')">
+              <span class="crit-title" id="traffic-title-urban">Urban moderat</span>
+              <span class="crit-desc" id="traffic-desc-urban">Oraș semafoare (+20%)</span>
+            </button>
+            <button type="button" class="crit-btn" data-traffic="heavy" onclick="setEstTraffic('heavy')">
+              <span class="crit-title" id="traffic-title-heavy">Urban aglomerat</span>
+              <span class="crit-desc" id="traffic-desc-heavy">Oră de vârf, stop-and-go (+40%)</span>
+            </button>
+            <button type="button" class="crit-btn" data-traffic="trafficjam" onclick="setEstTraffic('trafficjam')">
+              <span class="crit-title" id="traffic-title-jam">Blocaj în trafic</span>
+              <span class="crit-desc" id="traffic-desc-jam">Bară la bară sever (+65%)</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Aer Conditionat -->
+        <div class="field">
+          <div class="field-header">
+            <label id="label-est-ac">Aer condiționat (Climă)</label>
+            <span class="field-hint" id="est-ac-hint">Compresor & răcire</span>
+          </div>
+          <div class="ac-row" id="est-ac-row">
+            <button type="button" class="crit-btn-pill active" data-ac="off" onclick="setEstAc('off')">
+              <span id="ac-opt-off">Oprit</span>
+            </button>
+            <button type="button" class="crit-btn-pill" data-ac="eco" onclick="setEstAc('eco')">
+              <span id="ac-opt-eco">Eco / Auto (+0.5 L)</span>
+            </button>
+            <button type="button" class="crit-btn-pill" data-ac="max" onclick="setEstAc('max')">
+              <span id="ac-opt-max">Maxim / Caniculă (+1.1 L)</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Stil de condus & Sezon -->
+        <div class="field-row-2">
+          <div class="field">
+            <div class="field-header">
+              <label id="label-est-style" for="est-style-select">Stil condus</label>
+            </div>
+            <select id="est-style-select" class="est-select" onchange="recalculeazaEstimator()">
+              <option value="eco" id="style-opt-eco">Economic (-8%)</option>
+              <option value="normal" id="style-opt-normal" selected>Normal / Echilibrat</option>
+              <option value="sport" id="style-opt-sport">Sportiv / Agresiv (+18%)</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <div class="field-header">
+              <label id="label-est-season" for="est-season-select">Sezon & Roți</label>
+            </div>
+            <select id="est-season-select" class="est-select" onchange="recalculeazaEstimator()">
+              <option value="mild" id="season-opt-mild" selected>Temperat / Vară</option>
+              <option value="winter" id="season-opt-winter">Iarnă / Frig (+12%)</option>
+            </select>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Estimator Result Card -->
+      <div id="est-result-card" class="est-result-card" style="display:none">
+        <div class="est-label-row">
+          <span class="est-result-label" id="label-est-result-title">Consum Mediu Estimat</span>
+          <span id="est-diff-badge" class="est-diff-badge">+0.0 L/100</span>
+        </div>
+
+        <div class="est-val-row">
+          <span id="est-value-big" class="est-big-value">6.5</span>
+          <span class="est-unit" id="est-unit-label">L / 100 km</span>
+        </div>
+
+        <div class="est-factors-breakdown" id="est-factors-breakdown">
+          <!-- chips populated dynamically -->
+        </div>
+
+        <div class="est-actions-row">
+          <button type="button" class="btn-primary-apply" id="btn-apply-to-calculator" onclick="aplicaConsumInCalculator()">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            <span id="label-btn-apply-calc">Aplică în Calculator</span>
+          </button>
+          <button type="button" class="btn-secondary-save" id="btn-save-as-profile" onclick="salveazaCaProfilNou()">
+            <span id="label-btn-save-prof">+ Salvează</span>
+          </button>
+        </div>
+      </div>
+
     </div>
 
     <!-- ── TAB: HISTORY ── -->

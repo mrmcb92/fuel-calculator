@@ -1,6 +1,6 @@
 {
   "name": "Fuel Calculator",
-  "description": "Estimate fuel cost, vehicle range, and trip split costs with real-time fuel prices.",
+  "description": "Estimate fuel cost, vehicle range, average consumption based on traffic and AC, and trip split costs with real-time fuel prices.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
