@@ -76,6 +76,12 @@ const TRADUCERI = {
     ],
     tabEstimator:   'Estimator',
     quickEstimate:  'Estimate',
+    oneWay:         'One-way',
+    roundTrip:      'Round trip (2x)',
+    tapToCopy:      'Tap to copy',
+    loadTrip:       'Load in calc',
+    cockpitPrompt:  'Enter trip distance and fuel consumption to view real-time estimates.',
+    rangePrompt:    'Enter budget and consumption to calculate maximum distance.',
     estimatorSub:   'Select a vehicle from the list or enter a base consumption, then adjust road conditions to get the real average consumption.',
     estVehicle:     'Vehicle',
     estVehicleHint: 'Factory WLTP',
@@ -170,6 +176,12 @@ const TRADUCERI = {
       'Dacă nu o vezi, deschide meniul browserului și alege „Instalează Calculator Combustibil".',
     ],
     quickEstimate:  'Estimează',
+    oneWay:         'Doar dus',
+    roundTrip:      'Tur-retur (2x)',
+    tapToCopy:      'Apasă pt. copiere',
+    loadTrip:       'Încarcă în calc',
+    cockpitPrompt:  'Introdu distanța și consumul pentru a vedea costul în timp real.',
+    rangePrompt:    'Introdu bugetul și consumul pentru a calcula autonomia maximă.',
     estimatorSub:   'Alege autovehiculul din listă sau introdu consumul de bază, apoi ajustează traficul și clima pentru a calcula consumul mediu real.',
     estVehicle:     'Autovehicul',
     estVehicleHint: 'WLTP fabrică',
@@ -777,9 +789,19 @@ function applyFuelTypePrice(type, overwrite) {
 
 function updateFuelTypeButtons() {
   const normSelected = typeof normalizeFuelType === 'function' ? normalizeFuelType(selectedFuelType) : selectedFuelType;
+  const prices = typeof getCurrentFuelPrices === 'function' ? getCurrentFuelPrices() : {};
   document.querySelectorAll('#fuel-type-grid .fuel-btn, #fuel-type-grid-r .fuel-btn').forEach(b => {
     const normBtn = typeof normalizeFuelType === 'function' ? normalizeFuelType(b.dataset.fuel) : b.dataset.fuel;
     b.classList.toggle('active', normBtn === normSelected);
+    const pSub = b.querySelector('.fuel-btn-price');
+    if (pSub) {
+      const p = prices[normBtn] || (typeof FUEL_DEFAULTS_RON !== 'undefined' ? FUEL_DEFAULTS_RON[normBtn] : null);
+      if (p && currency === 'RON') {
+        pSub.textContent = p.toFixed(2) + ' lei';
+      } else {
+        pSub.textContent = '';
+      }
+    }
   });
 }
 
@@ -846,6 +868,10 @@ function aplicaLimba() {
     'profile-default-opt':tr.profileDefault,
     'label-distanta':     tr.distanta,
     'label-tur-retur':    tr.turRetur,
+    'label-direction-oneway': tr.oneWay,
+    'label-direction-round':  tr.roundTrip,
+    'cockpit-placeholder-text': tr.cockpitPrompt,
+    'range-placeholder-text':   tr.rangePrompt,
     'label-consum':       tr.consum,
     'label-fuel-type':      tr.fuelType,
     'label-fuel-type-r':    tr.fuelType,
@@ -958,6 +984,99 @@ function setTab(tab) {
 
 // ── Split passengers ──────────────────────────────────────────────────────────
 
+function updateTurReturUI() {
+  const cb = document.getElementById('tur-retur');
+  const isRound = cb && cb.checked;
+  document.querySelectorAll('.btn-direction-seg').forEach(b => {
+    b.classList.toggle('active', (b.dataset.dir === 'round') === isRound);
+  });
+}
+
+function setTurRetur(isRound) {
+  const cb = document.getElementById('tur-retur');
+  if (cb) {
+    cb.checked = isRound;
+    updateTurReturUI();
+    recalculeaza();
+  }
+}
+
+function addDistanta(km) {
+  const el = document.getElementById('distanta');
+  const cur = parseNum(el.value) || 0;
+  el.value = Math.max(0.1, Math.round((cur + km) * 10) / 10);
+  recalculeaza();
+}
+
+function setDistanta(km) {
+  const el = document.getElementById('distanta');
+  el.value = km;
+  recalculeaza();
+}
+
+function adjustPasageri(delta) {
+  const inp = document.getElementById('pasageri');
+  if (!inp) return;
+  let v = parseInt(inp.value, 10) || 1;
+  v = Math.max(1, Math.min(20, v + delta));
+  inp.value = v;
+  const splitCb = document.getElementById('split-toggle');
+  if (v > 1 && splitCb && !splitCb.checked) {
+    splitCb.checked = true;
+    document.getElementById('pasageri-wrap').style.display = '';
+  }
+  recalculeaza();
+}
+
+function setPasageri(num) {
+  const inp = document.getElementById('pasageri');
+  if (!inp) return;
+  inp.value = num;
+  const splitCb = document.getElementById('split-toggle');
+  if (num > 1 && splitCb && !splitCb.checked) {
+    splitCb.checked = true;
+    document.getElementById('pasageri-wrap').style.display = '';
+  }
+  recalculeaza();
+}
+
+function setBugetPreset(val) {
+  const inp = document.getElementById('buget');
+  if (!inp) return;
+  inp.value = val;
+  calcRange();
+}
+
+function adjustConsum(delta) {
+  const inp = document.getElementById('consum');
+  if (!inp) return;
+  let v = parseNum(inp.value) || 6.5;
+  v = Math.max(0.1, Math.round((v + delta) * 10) / 10);
+  inp.value = v;
+  recalculeaza();
+}
+
+function loadHistoryItem(index) {
+  const hist = getHistory();
+  const item = hist[index];
+  if (!item) return;
+  const dInp = document.getElementById('distanta');
+  if (dInp) dInp.value = item.distanta;
+  if (item.pasageri) {
+    const pInp = document.getElementById('pasageri');
+    if (pInp) pInp.value = item.pasageri;
+    const splitCb = document.getElementById('split-toggle');
+    if (splitCb) {
+      splitCb.checked = item.pasageri > 1;
+      const wrap = document.getElementById('pasageri-wrap');
+      if (wrap) wrap.style.display = item.pasageri > 1 ? '' : 'none';
+    }
+  }
+  setTab('cost');
+  recalculeaza();
+  showToast(limbaActiva === 'ro' ? 'Distanță încărcată din istoric!' : 'Trip loaded from history!');
+}
+
 function toggleSplit() {
   const on = document.getElementById('split-toggle').checked;
   document.getElementById('pasageri-wrap').style.display = on ? '' : 'none';
@@ -1025,12 +1144,19 @@ function computeCostResult() {
 }
 
 function recalculeaza() {
+  updateTurReturUI();
   const res = computeCostResult();
-  if (!res) return;
+  const placeholder = document.getElementById('cockpit-placeholder');
+  if (!res) {
+    if (placeholder) placeholder.style.display = '';
+    return;
+  }
   if (res.eroare) {
+    if (placeholder) placeholder.style.display = 'none';
     afiseazaEroare(res.eroare);
     return;
   }
+  if (placeholder) placeholder.style.display = 'none';
   lastResult = res;
   afiseazaRezultat(res);
 }
@@ -1084,28 +1210,51 @@ function afiseazaRezultat(res) {
   document.getElementById('share-row').style.display = '';
   rez.className = '';
 
-  const cols = res.pasageri > 1 ? 4 : 3;
   const perPaxHTML = res.pasageri > 1 ? `
-    <div class="result-card" data-copy="${fmt.format(res.cost / res.pasageri)}">
-      <div class="r-label">${tr.labelPerPax}</div>
+    <div class="result-card result-pax-card" data-copy="${fmt.format(res.cost / res.pasageri)}">
+      <div class="r-label">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        ${tr.labelPerPax}
+      </div>
       <div class="r-value">${fmt.format(res.cost / res.pasageri)}</div>
-      <div class="r-unit">${currency}</div>
+      <div class="r-unit">${currency} / pers.</div>
     </div>` : '';
 
   rez.innerHTML = `
-    <div class="result-grid cols-${cols}">
+    <div class="result-hero-card result-card" data-copy="${fmt.format(res.cost)}">
+      <div class="r-hero-top">
+        <span class="r-hero-label">${tr.labelCost}</span>
+        <span class="r-hero-copy-badge">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+          ${tr.tapToCopy || 'Copiază'}
+        </span>
+      </div>
+      <div class="r-hero-value-wrap">
+        <span class="r-hero-value">${fmt.format(res.cost)}</span>
+        <span class="r-hero-currency">${currency}</span>
+      </div>
+      <div class="r-hero-sub">
+        <span>${fmt.format(res.distanta)} km</span>
+        <span class="r-dot">•</span>
+        <span>${fmt.format(res.costPerKm)} ${currency}/km</span>
+        ${res.pasageri > 1 ? `<span class="r-dot">•</span><span>${res.pasageri} pax</span>` : ''}
+      </div>
+    </div>
+
+    <div class="result-grid ${res.pasageri > 1 ? 'cols-3' : 'cols-2'}">
       <div class="result-card" data-copy="${fmt1.format(res.litri)}">
-        <div class="r-label">${tr.labelLitri}</div>
+        <div class="r-label">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 19V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v6h1a2 2 0 0 1 2 2v4a1 1 0 0 0 2 0v-6l-2-2"/></svg>
+          ${tr.labelLitri}
+        </div>
         <div class="r-value">${fmt1.format(res.litri)}</div>
         <div class="r-unit">${tr.unitLitri}</div>
       </div>
-      <div class="result-card" data-copy="${fmt.format(res.cost)}">
-        <div class="r-label">${tr.labelCost}</div>
-        <div class="r-value">${fmt.format(res.cost)}</div>
-        <div class="r-unit">${currency}</div>
-      </div>
       <div class="result-card" data-copy="${fmt.format(res.costPerKm)}">
-        <div class="r-label">${tr.labelCostKm}</div>
+        <div class="r-label">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          ${tr.labelCostKm}
+        </div>
         <div class="r-value">${fmt.format(res.costPerKm)}</div>
         <div class="r-unit">${currency}/km</div>
       </div>
@@ -1140,17 +1289,36 @@ function calcRange() {
   const litri = buget / pret;
   const dist  = (litri / consumL100) * 100;
 
+  const rangePlaceholder = document.getElementById('range-placeholder');
+  if (rangePlaceholder) rangePlaceholder.style.display = 'none';
+
   wrap.style.display = 'block';
   rez.className = '';
   rez.innerHTML = `
-    <div class="result-grid cols-2">
-      <div class="result-card" data-copy="${fmt.format(dist)}">
-        <div class="r-label">${t().labelMaxDist}</div>
-        <div class="r-value">${fmt.format(dist)}</div>
-        <div class="r-unit">${t().unitKm}</div>
+    <div class="result-hero-card result-card" data-copy="${fmt.format(dist)}">
+      <div class="r-hero-top">
+        <span class="r-hero-label">${t().labelMaxDist}</span>
+        <span class="r-hero-copy-badge">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+          ${t().tapToCopy || 'Copiază'}
+        </span>
       </div>
+      <div class="r-hero-value-wrap">
+        <span class="r-hero-value">${fmt.format(dist)}</span>
+        <span class="r-hero-currency">${t().unitKm}</span>
+      </div>
+      <div class="r-hero-sub">
+        <span>${fmt.format(buget)} ${currency}</span>
+        <span class="r-dot">•</span>
+        <span>${fmt1.format(consumL100)} L/100</span>
+      </div>
+    </div>
+    <div class="result-grid cols-1">
       <div class="result-card" data-copy="${fmt1.format(litri)}">
-        <div class="r-label">${t().labelLitriR}</div>
+        <div class="r-label">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 19V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v6h1a2 2 0 0 1 2 2v4a1 1 0 0 0 2 0v-6l-2-2"/></svg>
+          ${t().labelLitriR}
+        </div>
         <div class="r-value">${fmt1.format(litri)}</div>
         <div class="r-unit">${t().unitLitri}</div>
       </div>
@@ -1256,20 +1424,26 @@ function renderHistory() {
 
   btn.style.display = '';
   const locale = limbaActiva === 'ro' ? 'ro-RO' : 'en-GB';
-  list.innerHTML = hist.map(h => {
+  list.innerHTML = hist.map((h, idx) => {
     const ds  = new Date(h.date).toLocaleString(locale, {
       day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
     });
     const cur = h.currency || 'RON';
     const perPax = h.pasageri > 1
-      ? `<span>${tr.labelPerPax}: ${fmt.format(h.cost / h.pasageri)} ${cur}</span>` : '';
+      ? `<span class="hist-pax">${tr.labelPerPax}: <strong>${fmt.format(h.cost / h.pasageri)} ${cur}</strong></span>` : '';
     return `
       <div class="hist-item">
-        <div class="hist-date">${ds}</div>
+        <div class="hist-top">
+          <span class="hist-date">${ds}</span>
+          <button type="button" class="hist-load-btn" onclick="loadHistoryItem(${idx})" title="${tr.loadTrip || 'Încarcă în calculator'}">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            ${tr.loadTrip || 'Încarcă'}
+          </button>
+        </div>
         <div class="hist-vals">
-          <span>${fmt.format(h.distanta)} km</span>
-          <span>${fmt1.format(h.litri)} L</span>
-          <span class="hist-cost">${fmt.format(h.cost)} ${cur}</span>
+          <span class="hist-pill"><strong>${fmt.format(h.distanta)}</strong> km</span>
+          <span class="hist-pill"><strong>${fmt1.format(h.litri)}</strong> L</span>
+          <span class="hist-cost"><strong>${fmt.format(h.cost)}</strong> ${cur}</span>
           ${perPax}
         </div>
       </div>
@@ -1629,13 +1803,13 @@ function initMobileAppBehavior() {
     }, { passive: false });
   });
 
-  // Prevent double-tap zoom on iOS Safari while allowing normal fast taps
+  // Fast-tap prevention of double-tap zoom on iOS Safari
   let lastTouchEndTime = 0;
   document.addEventListener('touchend', (e) => {
     const now = Date.now();
     if (now - lastTouchEndTime <= 300) {
       const tag = e.target.tagName;
-      if (tag !== 'INPUT' && tag !== 'TEXTAREA') {
+      if (tag !== 'INPUT' && tag !== 'TEXTAREA' && tag !== 'SELECT') {
         e.preventDefault();
         if (typeof e.target.click === 'function') {
           e.target.click();
@@ -1643,91 +1817,6 @@ function initMobileAppBehavior() {
       }
     }
     lastTouchEndTime = now;
-  }, { passive: false });
-
-  // Smart touch scrolling:
-  // Disables rubber-banding / unwanted scrolling when content fits on screen.
-  // Allows scrolling only when content exceeds viewport or within scrollable containers.
-  let startY = 0;
-  let startX = 0;
-
-  document.addEventListener('touchstart', (e) => {
-    if (e.touches && e.touches.length === 1) {
-      startY = e.touches[0].clientY;
-      startX = e.touches[0].clientX;
-    }
-  }, { passive: true });
-
-  document.addEventListener('touchmove', (e) => {
-    if (!e.touches || e.touches.length !== 1) {
-      e.preventDefault(); // pinch or multi-touch zoom prevented
-      return;
-    }
-
-    const currentY = e.touches[0].clientY;
-    const currentX = e.touches[0].clientX;
-    const deltaY = startY - currentY; // > 0: dragging up (scrolling down)
-    const deltaX = startX - currentX;
-
-    // If predominantly horizontal gesture, do not intercept
-    if (Math.abs(deltaX) > Math.abs(deltaY)) {
-      return;
-    }
-
-    // Never block interaction on form elements
-    const tag = e.target.tagName;
-    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') {
-      return;
-    }
-
-    // Check if user is scrolling inside an internal scrollable container (e.g. modal-box)
-    let el = e.target;
-    let foundScrollable = null;
-    while (el && el !== document.body && el !== document.documentElement) {
-      const style = window.getComputedStyle(el);
-      const ovY = style.overflowY;
-      if ((ovY === 'auto' || ovY === 'scroll') && el.scrollHeight > el.clientHeight) {
-        foundScrollable = el;
-        break;
-      }
-      el = el.parentElement;
-    }
-
-    if (foundScrollable) {
-      const atTop = foundScrollable.scrollTop <= 0;
-      const atBottom = foundScrollable.scrollTop + foundScrollable.clientHeight >= foundScrollable.scrollHeight - 1;
-      // If at scroll boundary, prevent outer bounce
-      if ((deltaY < 0 && atTop) || (deltaY > 0 && atBottom)) {
-        e.preventDefault();
-      }
-      return;
-    }
-
-    // Check if the page itself has content that exceeds the screen
-    const docHeight = Math.max(
-      document.documentElement.scrollHeight,
-      document.body.scrollHeight,
-      document.documentElement.offsetHeight,
-      document.body.offsetHeight
-    );
-    const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
-    const isScrollNeeded = docHeight > viewportHeight + 4;
-
-    if (!isScrollNeeded) {
-      // Content fits entirely on screen -> DO NOT SCROLL
-      e.preventDefault();
-      return;
-    }
-
-    // If scroll IS needed, allow normal smooth scrolling, but prevent elastic bounce past edges
-    const scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop;
-    const maxScroll = docHeight - viewportHeight;
-    const atPageTop = scrollTop <= 0;
-    const atPageBottom = scrollTop >= maxScroll - 1;
-
-    if ((deltaY < 0 && atPageTop) || (deltaY > 0 && atPageBottom)) {
-      e.preventDefault();
-    }
   }, { passive: false });
 }
 
@@ -1837,3 +1926,12 @@ window.setEstAc          = setEstAc;
 window.recalculeazaEstimator = recalculeazaEstimator;
 window.aplicaConsumInCalculator = aplicaConsumInCalculator;
 window.salveazaCaProfilNou     = salveazaCaProfilNou;
+window.addDistanta       = addDistanta;
+window.setDistanta       = setDistanta;
+window.setTurRetur       = setTurRetur;
+window.adjustPasageri    = adjustPasageri;
+window.setPasageri       = setPasageri;
+window.setBugetPreset    = setBugetPreset;
+window.adjustConsum      = adjustConsum;
+window.loadHistoryItem   = loadHistoryItem;
+window.updateTurReturUI  = updateTurReturUI;
