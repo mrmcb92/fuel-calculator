@@ -1,19 +1,19 @@
 {
-  "updated": "2026-09-18T09:18:57.000Z",
+  "updated": "2026-09-19T09:06:34.000Z",
   "source": "pretcarburant.ro + peco-online.ro",
   "currency": "RON",
   "prices": {
     "B95": 9.97,
     "B98": 10.39,
     "Diesel": 10.78,
-    "DieselPlus": 11.05,
+    "DieselPlus": 11.06,
     "GPL": 4.71
   },
   "nationalAverages": {
     "B95": 9.97,
     "B98": 10.39,
     "Diesel": 10.78,
-    "DieselPlus": 11.05,
+    "DieselPlus": 11.06,
     "GPL": 4.71
   },
   "cities": {
@@ -34,8 +34,8 @@
     "Timisoara": {
       "B95": 9.93,
       "B98": 10.41,
-      "Diesel": 10.72,
-      "DieselPlus": 11.33,
+      "Diesel": 10.73,
+      "DieselPlus": 11.5,
       "GPL": 4.71
     },
     "Constanta": {
@@ -55,14 +55,14 @@
     "Oradea": {
       "B95": 9.93,
       "B98": 10.41,
-      "Diesel": 10.72,
+      "Diesel": 10.73,
       "DieselPlus": 10.79,
       "GPL": 4.71
     },
     "Cluj Napoca": {
       "B95": 9.93,
       "B98": 10.41,
-      "Diesel": 10.72,
+      "Diesel": 10.73,
       "DieselPlus": 11.14,
       "GPL": 4.7
     },
@@ -125,8 +125,8 @@
     "Sibiu": {
       "B95": 9.93,
       "B98": 10.41,
-      "Diesel": 10.72,
-      "DieselPlus": 11.33,
+      "Diesel": 10.73,
+      "DieselPlus": 11.5,
       "GPL": 4.7
     },
     "Bacau": {
