@@ -1,142 +1,142 @@
 {
-  "updated": "2026-10-04T10:49:41.000Z",
+  "updated": "2026-10-06T11:38:10.000Z",
   "source": "pretcarburant.ro + peco-online.ro",
   "currency": "RON",
   "prices": {
-    "B95": 10.08,
-    "B98": 10.54,
+    "B95": 10.15,
+    "B98": 10.6,
     "Diesel": 10.95,
     "DieselPlus": 11.4,
     "GPL": 4.71
   },
   "nationalAverages": {
-    "B95": 10.08,
-    "B98": 10.54,
+    "B95": 10.15,
+    "B98": 10.6,
     "Diesel": 10.95,
     "DieselPlus": 11.4,
     "GPL": 4.71
   },
   "cities": {
     "Bucuresti": {
-      "B95": 10.05,
-      "B98": 10.53,
+      "B95": 10.11,
+      "B98": 10.59,
       "Diesel": 10.91,
       "DieselPlus": 11.34,
       "GPL": 4.64
     },
     "Constanta": {
-      "B95": 10.05,
-      "B98": 10.53,
+      "B95": 10.11,
+      "B98": 10.59,
       "Diesel": 10.91,
       "DieselPlus": 11.31,
       "GPL": 4.69
     },
     "Craiova": {
-      "B95": 10.05,
-      "B98": 10.53,
+      "B95": 10.11,
+      "B98": 10.59,
       "Diesel": 10.91,
       "DieselPlus": 11.31,
       "GPL": 4.7
     },
     "Cluj-Napoca": {
-      "B95": 10.05,
-      "B98": 10.53,
+      "B95": 10.11,
+      "B98": 10.59,
       "Diesel": 10.91,
       "DieselPlus": 11.34,
       "GPL": 4.71
     },
     "Brasov": {
-      "B95": 10.05,
-      "B98": 10.53,
+      "B95": 10.11,
+      "B98": 10.59,
       "Diesel": 10.91,
       "DieselPlus": 11.31,
       "GPL": 4.67
     },
     "Iasi": {
-      "B95": 10.05,
-      "B98": 10.53,
+      "B95": 10.11,
+      "B98": 10.59,
       "Diesel": 10.91,
       "DieselPlus": 11.31,
       "GPL": 4.71
     },
     "Satu Mare": {
-      "B95": 10.05,
-      "B98": 10.53,
+      "B95": 10.11,
+      "B98": 10.59,
       "Diesel": 10.91,
       "DieselPlus": 11.34,
       "GPL": 4.7
     },
     "Ploiesti": {
-      "B95": 10.05,
-      "B98": 10.53,
+      "B95": 10.11,
+      "B98": 10.59,
       "Diesel": 10.91,
       "DieselPlus": 11.76,
       "GPL": 4.59
     },
     "Bacau": {
-      "B95": 10.05,
-      "B98": 10.53,
+      "B95": 10.11,
+      "B98": 10.59,
       "Diesel": 10.91,
       "DieselPlus": 11.31,
       "GPL": 4.7
     },
     "Pitesti": {
-      "B95": 10.05,
-      "B98": 10.53,
+      "B95": 10.11,
+      "B98": 10.59,
       "Diesel": 10.91,
       "DieselPlus": 11.76,
       "GPL": 4.68
     },
     "Buzau": {
-      "B95": 10.05,
-      "B98": 10.53,
+      "B95": 10.11,
+      "B98": 10.59,
       "Diesel": 10.91,
       "DieselPlus": 11.34,
       "GPL": 4.67
     },
     "Baia Mare": {
-      "B95": 10.05,
-      "B98": 10.53,
+      "B95": 10.11,
+      "B98": 10.59,
       "Diesel": 10.91,
       "DieselPlus": 11.31,
       "GPL": 4.71
     },
     "Braila": {
-      "B95": 10.05,
-      "B98": 10.65,
+      "B95": 10.11,
+      "B98": 10.71,
       "Diesel": 10.91,
       "DieselPlus": 11.31,
       "GPL": 4.68
     },
     "Targoviste": {
-      "B95": 10.05,
-      "B98": 10.53,
+      "B95": 10.11,
+      "B98": 10.59,
       "Diesel": 10.91,
       "DieselPlus": 11.31,
       "GPL": 4.64
     },
     "Targu Mures": {
-      "B95": 10.05,
-      "B98": 10.53,
+      "B95": 10.11,
+      "B98": 10.59,
       "Diesel": 10.91,
       "DieselPlus": 11.76,
       "GPL": 4.7
     },
     "Ramnicu Valcea": {
-      "B95": 10.05,
-      "B98": 10.53,
+      "B95": 10.11,
+      "B98": 10.59,
       "Diesel": 10.91,
       "DieselPlus": 11.34,
       "GPL": 4.69
     }
   },
   "networks": {
-    "Petrom": 10.05,
-    "OMV": 10.11,
-    "Rompetrol": 10.1,
-    "MOL": 10.11,
-    "Lukoil": 10.08,
-    "Socar": 10.06,
-    "Gazprom": 10.11
+    "Petrom": 10.11,
+    "OMV": 10.17,
+    "Rompetrol": 10.16,
+    "MOL": 10.17,
+    "Lukoil": 10.15,
+    "Socar": 10.13,
+    "Gazprom": 10.17
   }
 }
