@@ -31,9 +31,27 @@
       } catch (e) {
         document.documentElement.setAttribute('data-theme', 'dark');
       }
+    // Clean up stale or poisoned service worker caches immediately
+    (function () {
+      try {
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistrations().then(function (regs) {
+            for (var i = 0; i < regs.length; i++) {
+              regs[i].unregister();
+            }
+          });
+        }
+        if ('caches' in window) {
+          caches.keys().then(function (names) {
+            names.forEach(function (name) {
+              caches.delete(name);
+            });
+          });
+        }
+      } catch (e) {}
     })();
   </script>
-  <link rel="stylesheet" href="style.css?v=5">
+  <link rel="stylesheet" href="style.css?v=6">
 </head>
 <body>
   <div class="app-shell card">
@@ -77,17 +95,50 @@
         <!-- Language Switcher -->
         <button class="header-action-btn lang-btn" id="btn-limba" onclick="schimbaLimba()" aria-label="Switch language">RO</button>
 
-        <!-- Install PWA Button -->
-        <button id="btn-install" class="install-btn" onclick="handleInstallClick()" style="display:none">
+        <!-- Install PWA Button (Compact & responsive in header) -->
+        <button id="btn-install" class="install-btn header-install-btn" onclick="handleInstallClick()" style="display:none" aria-label="Instalează aplicația" title="Instalează aplicația">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M12 3v12"/>
             <path d="m8 11 4 4 4-4"/>
             <path d="M4 21h16"/>
           </svg>
-          <span id="label-install">Install</span>
+          <span id="label-install" class="install-btn-label">Install</span>
         </button>
       </div>
     </header>
+
+    <!-- ── Ergonomic PWA Install Banner (Highly visible & accessible on all OS) ── -->
+    <section id="pwa-install-banner" class="pwa-install-banner" style="display:none" aria-label="Instalare aplicație">
+      <div class="pwa-banner-main">
+        <div class="pwa-banner-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3v12"/>
+            <path d="m8 11 4 4 4-4"/>
+            <path d="M4 21h16"/>
+          </svg>
+        </div>
+        <div class="pwa-banner-info">
+          <h2 class="pwa-banner-title" id="banner-install-title">Instalează aplicația</h2>
+          <p class="pwa-banner-desc" id="banner-install-desc">Acces rapid de pe ecranul principal și funcționare offline</p>
+        </div>
+      </div>
+      <div class="pwa-banner-actions">
+        <button type="button" class="pwa-banner-btn" onclick="handleInstallClick()" id="btn-banner-install">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 3v12"/>
+            <path d="m8 11 4 4 4-4"/>
+            <path d="M4 21h16"/>
+          </svg>
+          <span id="label-banner-install">Instalează</span>
+        </button>
+        <button type="button" class="pwa-banner-close" onclick="dismissInstallBanner()" aria-label="Închide bannerul de instalare" title="Închide">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+    </section>
 
     <!-- ── Navigation Bar (Desktop Top Tabs / Mobile Bottom Nav Bar) ── -->
     <nav class="tabs" id="main-tabs" aria-label="Navigare Principală">
@@ -636,13 +687,29 @@
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-  <script src="firebase-config.js?v=2"></script>
-  <script src="core.js?v=2"></script>
-  <script src="app.js?v=4"></script>
+  <script src="firebase-config.js?v=4"></script>
   <script>
-    if ('serviceWorker' in navigator) {
+    if (typeof FIREBASE_CONFIG === 'undefined') {
+      window.FIREBASE_CONFIG = {
+        apiKey:            "AIzaSyCs0hjNhFke5SQsCFFqqaPUJTEOXfOytmc",
+        authDomain:        "fuel-calculator-faa50.firebaseapp.com",
+        projectId:         "fuel-calculator-faa50",
+        storageBucket:     "fuel-calculator-faa50.firebasestorage.app",
+        messagingSenderId: "856821371606",
+        appId:             "1:856821371606:web:4a6af821e896677d3c6f77",
+        measurementId:     "G-B9C0C6JHSY"
+      };
+    }
+  </script>
+  <script src="core.js?v=4"></script>
+  <script src="app.js?v=6"></script>
+  <script>
+    // Only register service worker in production/GitHub Pages, never inside dev preview iframes
+    if ('serviceWorker' in navigator && !window.location.hostname.includes('run.app')) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js');
+        navigator.serviceWorker.register('sw.js?v=18').catch((err) => {
+          console.warn('SW registration warning:', err);
+        });
       });
     }
   </script>

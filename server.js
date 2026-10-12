@@ -26,9 +26,11 @@ app.get('/api/fuel-prices', (req, res) => {
   });
 });
 
-// Optional dynamic config override for Firebase
+// Direct asset endpoints with absolute mime types and no-cache guarantees
 app.get('/firebase-config.js', (req, res) => {
   res.type('application/javascript');
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
   const config = {
     apiKey: process.env.FIREBASE_API_KEY || "AIzaSyCs0hjNhFke5SQsCFFqqaPUJTEOXfOytmc",
     authDomain: process.env.FIREBASE_AUTH_DOMAIN || "fuel-calculator-faa50.firebaseapp.com",
@@ -41,11 +43,53 @@ app.get('/firebase-config.js', (req, res) => {
   res.send(`const FIREBASE_CONFIG = ${JSON.stringify(config, null, 2)};\n`);
 });
 
+app.get('/core.js', (req, res) => {
+  res.type('application/javascript');
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.sendFile(path.join(__dirname, 'core.js'));
+});
+
+app.get('/app.js', (req, res) => {
+  res.type('application/javascript');
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.sendFile(path.join(__dirname, 'app.js'));
+});
+
+app.get('/style.css', (req, res) => {
+  res.type('text/css');
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.sendFile(path.join(__dirname, 'style.css'));
+});
+
+// Service Worker endpoint with immediate revalidation
+app.get('/sw.js', (req, res) => {
+  res.type('application/javascript');
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.sendFile(path.join(__dirname, 'sw.js'));
+});
+
+// Clear stale cache and ensure proper headers for scripts
+app.use((req, res, next) => {
+  res.setHeader('Clear-Site-Data', '"cache"');
+  if (req.path.endsWith('.js')) {
+    res.type('application/javascript');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+  }
+  next();
+});
+
 // Serve static assets from project root
 app.use(express.static(path.join(__dirname)));
 
-// Single page application fallback
+// Single page application fallback (only for page navigations, not asset requests)
 app.get('*', (req, res) => {
+  if (req.path.match(/\.(js|css|json|png|jpg|svg|ico|txt|map|webmanifest)$/i)) {
+    return res.status(404).type('text/plain').send('Not Found');
+  }
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 

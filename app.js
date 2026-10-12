@@ -57,6 +57,9 @@ const TRADUCERI = {
     priceDisclaimer: 'Real station prices (Peco Online & PretCarburant) — updated daily',
     installApp:     'Install app',
     installTitle:   'Install app',
+    bannerInstallTitle: 'Install Fuel Calculator',
+    bannerInstallDesc:  'Add to home screen for fast access & offline mode',
+    bannerInstallBtn:   'Install',
     installIntro:   'Add Fuel Calculator to your home screen for quick, offline access — it works like a native app.',
     installDone:    'App installed.',
     installIOS:     [
@@ -158,6 +161,9 @@ const TRADUCERI = {
     priceDisclaimer: 'Prețuri exacte din benzinării (Peco Online & PretCarburant) — actualizate zilnic',
     installApp:     'Instalează aplicația',
     installTitle:   'Instalează aplicația',
+    bannerInstallTitle: 'Instalează aplicația',
+    bannerInstallDesc:  'Acces rapid de pe ecranul principal și funcționare offline',
+    bannerInstallBtn:   'Instalează',
     installIntro:   'Adaugă Calculator Combustibil pe ecranul principal pentru acces rapid și offline — funcționează ca o aplicație nativă.',
     installDone:    'Aplicație instalată.',
     installIOS:     [
@@ -429,37 +435,68 @@ function detectPlatform() {
 
 function initInstall() {
   const btn = document.getElementById('btn-install');
-  if (!btn) return;
-  // Already installed → no button needed.
-  if (isStandalone()) { btn.style.display = 'none'; return; }
+  const banner = document.getElementById('pwa-install-banner');
 
-  // Show by default so iOS users (no beforeinstallprompt event) always get the guide.
-  btn.style.display = '';
+  // Already installed → no button or banner needed.
+  if (isStandalone()) {
+    if (btn) btn.style.display = 'none';
+    if (banner) banner.style.display = 'none';
+    return;
+  }
+
+  // Show header button by default so iOS / Android / Desktop always have access
+  if (btn) btn.style.display = '';
+
+  // Show ergonomic banner unless user has explicitly dismissed it
+  const isDismissed = storageGet('comb_install_banner_dismissed') === 'true';
+  if (banner && !isDismissed) {
+    banner.style.display = '';
+  }
 
   window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();           // keep our own button instead of the mini-infobar
+    e.preventDefault();           // keep our own ergonomic prompt & button
     deferredInstallPrompt = e;
-    btn.style.display = '';
+    if (btn) btn.style.display = '';
+    const dismissed = storageGet('comb_install_banner_dismissed') === 'true';
+    if (banner && !dismissed) {
+      banner.style.display = '';
+    }
   });
 
   window.addEventListener('appinstalled', () => {
     deferredInstallPrompt = null;
-    btn.style.display = 'none';
+    if (btn) btn.style.display = 'none';
+    if (banner) banner.style.display = 'none';
     closeInstallModal();
     showToast(t().installDone);
   });
 }
 
+function dismissInstallBanner() {
+  const banner = document.getElementById('pwa-install-banner');
+  if (banner) {
+    banner.style.display = 'none';
+  }
+  storageSet('comb_install_banner_dismissed', 'true');
+}
+
 async function handleInstallClick() {
   // Native prompt available (Android / Chromium desktop) → use it directly.
   if (deferredInstallPrompt) {
-    deferredInstallPrompt.prompt();
-    const { outcome } = await deferredInstallPrompt.userChoice;
-    deferredInstallPrompt = null;
-    if (outcome === 'accepted') {
-      document.getElementById('btn-install').style.display = 'none';
+    try {
+      deferredInstallPrompt.prompt();
+      const { outcome } = await deferredInstallPrompt.userChoice;
+      deferredInstallPrompt = null;
+      if (outcome === 'accepted') {
+        const btn = document.getElementById('btn-install');
+        const banner = document.getElementById('pwa-install-banner');
+        if (btn) btn.style.display = 'none';
+        if (banner) banner.style.display = 'none';
+      }
+      return;
+    } catch (err) {
+      console.warn('Install prompt error:', err);
     }
-    return;
   }
   // Otherwise (iOS Safari, or prompt not yet fired) → show manual guide.
   openInstallModal();
@@ -895,6 +932,9 @@ function aplicaLimba() {
     'label-install':      tr.installApp,
     'install-title':      tr.installTitle,
     'install-intro':      tr.installIntro,
+    'banner-install-title': tr.bannerInstallTitle,
+    'banner-install-desc':  tr.bannerInstallDesc,
+    'label-banner-install': tr.bannerInstallBtn,
   };
   for (const [id, text] of Object.entries(ids)) {
     const el = document.getElementById(id);
@@ -1916,6 +1956,7 @@ window.selectFuelType     = selectFuelType;
 window.setFuelLocation    = setFuelLocation;
 window.refreshFuelPrices  = refreshFuelPrices;
 window.handleInstallClick = handleInstallClick;
+window.dismissInstallBanner = dismissInstallBanner;
 window.closeInstallModal  = closeInstallModal;
 window.onInstallOverlayClick = onInstallOverlayClick;
 window.toggleTheme        = toggleTheme;
