@@ -1,19 +1,19 @@
 {
-  "updated": "2026-10-20T09:44:20.000Z",
+  "updated": "2026-10-21T09:45:52.000Z",
   "source": "pretcarburant.ro + peco-online.ro",
   "currency": "RON",
   "prices": {
     "B95": 10.1,
     "B98": 10.55,
     "Diesel": 10.9,
-    "DieselPlus": 11.35,
+    "DieselPlus": 11.33,
     "GPL": 4.71
   },
   "nationalAverages": {
     "B95": 10.1,
     "B98": 10.55,
     "Diesel": 10.9,
-    "DieselPlus": 11.35,
+    "DieselPlus": 11.33,
     "GPL": 4.71
   },
   "cities": {
@@ -23,6 +23,20 @@
       "Diesel": 10.86,
       "DieselPlus": 11.29,
       "GPL": 4.64
+    },
+    "Arad": {
+      "B95": 10.04,
+      "B98": 10.54,
+      "Diesel": 10.83,
+      "DieselPlus": 11.23,
+      "GPL": 4.71
+    },
+    "Timisoara": {
+      "B95": 10.04,
+      "B98": 10.54,
+      "Diesel": 10.83,
+      "DieselPlus": 11.23,
+      "GPL": 4.71
     },
     "Constanta": {
       "B95": 10.06,
@@ -38,19 +52,19 @@
       "DieselPlus": 11.26,
       "GPL": 4.7
     },
+    "Oradea": {
+      "B95": 10.04,
+      "B98": 10.54,
+      "Diesel": 10.83,
+      "DieselPlus": 11.23,
+      "GPL": 4.71
+    },
     "Brasov": {
       "B95": 10.06,
       "B98": 10.54,
       "Diesel": 10.86,
       "DieselPlus": 11.26,
       "GPL": 4.67
-    },
-    "Cluj-Napoca": {
-      "B95": 10.06,
-      "B98": 10.54,
-      "Diesel": 10.86,
-      "DieselPlus": 11.29,
-      "GPL": 4.71
     },
     "Iasi": {
       "B95": 10.06,
@@ -72,6 +86,13 @@
       "Diesel": 10.86,
       "DieselPlus": 11.71,
       "GPL": 4.59
+    },
+    "Sibiu": {
+      "B95": 10.04,
+      "B98": 10.54,
+      "Diesel": 10.83,
+      "DieselPlus": 11.23,
+      "GPL": 4.7
     },
     "Bacau": {
       "B95": 10.06,
