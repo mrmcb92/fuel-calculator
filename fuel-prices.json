@@ -1,20 +1,20 @@
 {
-  "updated": "2026-11-06T12:37:21.000Z",
+  "updated": "2026-11-07T11:25:16.000Z",
   "source": "pretcarburant.ro + peco-online.ro",
   "currency": "RON",
   "prices": {
     "B95": 9.9,
     "B98": 10.4,
     "Diesel": 10.89,
-    "DieselPlus": 11.33,
-    "GPL": 4.71
+    "DieselPlus": 11.36,
+    "GPL": 4.73
   },
   "nationalAverages": {
     "B95": 9.9,
     "B98": 10.4,
     "Diesel": 10.89,
-    "DieselPlus": 11.33,
-    "GPL": 4.71
+    "DieselPlus": 11.36,
+    "GPL": 4.73
   },
   "cities": {
     "Bucuresti": {
@@ -22,21 +22,7 @@
       "B98": 10.4,
       "Diesel": 10.86,
       "DieselPlus": 11.29,
-      "GPL": 4.64
-    },
-    "Arad": {
-      "B95": 9.85,
-      "B98": 10.39,
-      "Diesel": 10.83,
-      "DieselPlus": 11.23,
-      "GPL": 4.71
-    },
-    "Timisoara": {
-      "B95": 9.85,
-      "B98": 10.4,
-      "Diesel": 10.83,
-      "DieselPlus": 11.23,
-      "GPL": 4.71
+      "GPL": 4.67
     },
     "Constanta": {
       "B95": 9.87,
@@ -50,14 +36,7 @@
       "B98": 10.4,
       "Diesel": 10.86,
       "DieselPlus": 11.26,
-      "GPL": 4.49
-    },
-    "Oradea": {
-      "B95": 9.85,
-      "B98": 10.4,
-      "Diesel": 10.83,
-      "DieselPlus": 11.23,
-      "GPL": 4.71
+      "GPL": 4.54
     },
     "Brasov": {
       "B95": 9.87,
@@ -85,21 +64,14 @@
       "B98": 10.4,
       "Diesel": 10.86,
       "DieselPlus": 11.29,
-      "GPL": 4.7
+      "GPL": 4.71
     },
     "Ploiesti": {
       "B95": 9.87,
       "B98": 10.4,
       "Diesel": 10.86,
       "DieselPlus": 11.71,
-      "GPL": 4.59
-    },
-    "Sibiu": {
-      "B95": 9.85,
-      "B98": 10.4,
-      "Diesel": 10.83,
-      "DieselPlus": 11.23,
-      "GPL": 4.7
+      "GPL": 4.64
     },
     "Bacau": {
       "B95": 9.87,
@@ -135,6 +107,13 @@
       "Diesel": 10.86,
       "DieselPlus": 11.29,
       "GPL": 4.69
+    },
+    "Targoviste": {
+      "B95": 9.87,
+      "B98": 10.4,
+      "Diesel": 10.86,
+      "DieselPlus": 11.26,
+      "GPL": 4.67
     },
     "Braila": {
       "B95": 9.87,
