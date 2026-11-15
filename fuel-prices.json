@@ -1,16 +1,16 @@
 {
-  "updated": "2026-11-14T11:53:10.000Z",
+  "updated": "2026-11-15T12:24:02.000Z",
   "source": "pretcarburant.ro + peco-online.ro",
   "currency": "RON",
   "prices": {
-    "B95": 9.54,
+    "B95": 9.52,
     "B98": 10.66,
     "Diesel": 10.71,
     "DieselPlus": 10.01,
     "GPL": 4.78
   },
   "nationalAverages": {
-    "B95": 9.54,
+    "B95": 9.52,
     "B98": 10.66,
     "Diesel": 10.71,
     "DieselPlus": 10.01,
@@ -161,8 +161,8 @@
   "networks": {
     "Petrom": 9.48,
     "OMV": 9.54,
-    "Rompetrol": 9.54,
-    "MOL": 9.69,
+    "Rompetrol": 9.53,
+    "MOL": 9.54,
     "Lukoil": 9.51,
     "Socar": 9.48,
     "Gazprom": 9.84
